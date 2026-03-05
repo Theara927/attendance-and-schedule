@@ -9,10 +9,12 @@ import type {
 import { HTTPException } from "hono/http-exception";
 
 export class ClassroomService {
+  private static readonly CACHE_TTL_SECONDS = 3600;
+
   constructor(
     private readonly classroomRepository: ClassroomRepository,
     private readonly buildingRepository: BuildingRepository,
-    private readonly cache: RedisCache<Classroom>,
+    private readonly cache: RedisCache,
   ) {}
 
   async findAll(): Promise<Classroom[]> {
@@ -26,11 +28,12 @@ export class ClassroomService {
 
     const classroom = await this.classroomRepository.findOne(id);
     if (!classroom) {
-      await this.cache.del(cacheKey).catch(() => {});
       throw new HTTPException(404, { message: "Classroom not found" });
     }
 
-    this.cache.set(cacheKey, classroom, 3600).catch(() => {});
+    this.cache
+      .set(cacheKey, classroom, ClassroomService.CACHE_TTL_SECONDS)
+      .catch(() => {});
     return classroom;
   }
 
@@ -42,21 +45,18 @@ export class ClassroomService {
       });
     }
 
-    const existing = await this.classroomRepository.findByBuildingAndName(
-      data.buildingId,
-      data.name,
-    );
-    if (existing) {
-      throw new HTTPException(409, {
-        message: `Classroom "${data.name}" already exists in building "${building.name}"`,
-      });
-    }
-
     try {
       const created = await this.classroomRepository.create(data);
-      this.cache.set(`classrooms:${created.id}`, created, 3600).catch(() => {});
+      this.cache
+        .set(
+          `classrooms:${created.id}`,
+          created,
+          ClassroomService.CACHE_TTL_SECONDS,
+        )
+        .catch(() => {});
       return created;
     } catch (error) {
+      console.error("Error creating classroom:", error);
       if (
         error instanceof Error &&
         /unique|duplicate|key.*violat/i.test(error.message)
@@ -76,6 +76,12 @@ export class ClassroomService {
       });
     }
 
+    // Always verify existence upfront to fail fast and avoid partial work
+    const current = await this.classroomRepository.findOne(id);
+    if (!current) {
+      throw new HTTPException(404, { message: "Classroom not found" });
+    }
+
     if (data.buildingId !== undefined) {
       const newBuilding = await this.buildingRepository.findOne(
         data.buildingId,
@@ -88,10 +94,6 @@ export class ClassroomService {
     }
 
     if (data.name !== undefined || data.buildingId !== undefined) {
-      const current = await this.classroomRepository.findOne(id);
-      if (!current)
-        throw new HTTPException(404, { message: "Classroom not found" });
-
       const targetBuildingId = data.buildingId ?? current.buildingId;
       const targetName = data.name ?? current.name;
 
@@ -108,17 +110,19 @@ export class ClassroomService {
       }
     }
 
-    const updated = await this.classroomRepository.update(id, data);
-    if (!updated)
-      throw new HTTPException(404, { message: "Classroom not found" });
-    this.cache.set(`classrooms:${id}`, updated, 3600).catch(() => {});
+    // Safe to assert non-null: we verified existence above and no deletion occurs between calls
+    const updated = (await this.classroomRepository.update(id, data))!;
+    this.cache
+      .set(`classrooms:${id}`, updated, ClassroomService.CACHE_TTL_SECONDS)
+      .catch(() => {});
     return updated;
   }
 
   async delete(id: number): Promise<void> {
     const deleted = await this.classroomRepository.delete(id);
     this.cache.del(`classrooms:${id}`).catch(() => {});
-    if (!deleted)
+    if (!deleted) {
       throw new HTTPException(404, { message: "Classroom not found" });
+    }
   }
 }

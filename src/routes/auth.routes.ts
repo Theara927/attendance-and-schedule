@@ -27,6 +27,7 @@ router.post(
     });
     return c.json({
       message: "Student registered successfully",
+      result,
     });
   },
 );
@@ -51,6 +52,7 @@ router.post(
     });
     return c.json({
       message: "Teacher registered successfully",
+      result,
     });
   },
 );

@@ -1,4 +1,7 @@
-import type { AttendanceRecord } from "@/types/attendance";
+import type {
+  AttendanceRecord,
+  CourseAttendanceSummary,
+} from "@/types/attendance";
 import type {
   BulkAttendanceInput,
   MarkAttendanceInput,
@@ -9,60 +12,51 @@ import { HTTPException } from "hono/http-exception";
 export class AttendanceService {
   constructor(private readonly attendanceRepository: AttendanceRepository) {}
 
-  async markAttendance(data: MarkAttendanceInput): Promise<AttendanceRecord> {
-    const records = await this.attendanceRepository.markAttendance([data]);
-    if (!records || records.length === 0) {
-      throw new HTTPException(500, { message: "Failed to mark attendance" });
-    }
-    return records[0]!;
-  }
-
   async markBulkAttendance(
-    datas: BulkAttendanceInput,
+    input: BulkAttendanceInput,
   ): Promise<AttendanceRecord[]> {
-    const records: MarkAttendanceInput[] = datas.mark.map((mark) => ({
-      courseId: datas.courseId,
+    const records: MarkAttendanceInput[] = input.mark.map((mark) => ({
+      courseId: input.courseId,
       studentId: mark.studentId,
-      date: datas.date,
+      date: input.date,
       status: mark.status,
-      session: datas.session,
+      session: input.session,
       notes: mark.notes,
-      recordedBy: datas.recordedBy,
+      recordedBy: input.recordedBy,
     }));
 
-    return await this.attendanceRepository.markAttendance(records);
+    const existenceChecks = await Promise.all(
+      records.map((record) =>
+        this.attendanceRepository.findAttendanceByStudentIdCourseIdAndDate(
+          record.studentId,
+          record.courseId,
+          new Date(record.date),
+        ),
+      ),
+    );
+    if (existenceChecks.some(Boolean)) {
+      throw new HTTPException(409, { message: "Attendance already marked" });
+    }
+
+    return this.attendanceRepository.markAttendance(records);
   }
 
-  async generateAttendanceReportForStudent(studentId: number) {
+  async generateAttendanceReportForStudent(
+    studentId: number,
+  ): Promise<Record<string, CourseAttendanceSummary>> {
     const report =
       await this.attendanceRepository.getAttendanceByStudentId(studentId);
-    const result = report.reduce<
+
+    const counts = report.reduce<
       Record<
         string,
-        {
-          late: number;
-          absent: number;
-          present: number;
-          excused: number;
-          absentPercentage: number;
-          excusedPercentage: number;
-          absentAndExcusePercentage: number;
-        }
+        { late: number; absent: number; present: number; excused: number }
       >
-    >((acc: any, row: any) => {
+    >((acc, row) => {
       const courseName = row.course.name;
       if (!acc[courseName]) {
-        acc[courseName] = {
-          late: 0,
-          absent: 0,
-          present: 0,
-          excused: 0,
-          absentPercentage: 0,
-          excusedPercentage: 0,
-          absentAndExcusePercentage: 0,
-        };
+        acc[courseName] = { late: 0, absent: 0, present: 0, excused: 0 };
       }
-
       switch (row.status) {
         case "absent":
           acc[courseName].absent++;
@@ -77,24 +71,30 @@ export class AttendanceService {
           acc[courseName].excused++;
           break;
       }
-
-      const totalAbsentPercentage = (acc[courseName].absent / 30) * 100;
-      const totalExcusedPercentage = (acc[courseName].excused / 30) * 100;
-      const totalAbsentAndExcusedPercentage =
-        totalAbsentPercentage + totalExcusedPercentage;
-
-      acc[courseName].absentPercentage = totalAbsentPercentage;
-      acc[courseName].excusedPercentage = totalExcusedPercentage;
-      acc[courseName].absentAndExcusePercentage =
-        totalAbsentAndExcusedPercentage;
-
       return acc;
     }, {});
 
-    return result;
+    return Object.fromEntries(
+      Object.entries(counts).map(([courseName, c]) => {
+        const total = c.absent + c.present + c.late + c.excused;
+        const absentPercentage = total > 0 ? (c.absent / total) * 100 : 0;
+        const excusedPercentage = total > 0 ? (c.excused / total) * 100 : 0;
+        return [
+          courseName,
+          {
+            ...c,
+            absentPercentage,
+            excusedPercentage,
+            absentAndExcusePercentage: absentPercentage + excusedPercentage,
+          },
+        ];
+      }),
+    );
   }
 
-  async getAttendanceByStudentId(studentId: number) {
-    return await this.attendanceRepository.getAttendanceByStudentId(studentId);
+  async getAttendanceByStudentId(
+    studentId: number,
+  ): Promise<AttendanceRecord[]> {
+    return this.attendanceRepository.getAttendanceByStudentId(studentId);
   }
 }

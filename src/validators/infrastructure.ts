@@ -17,7 +17,7 @@ export type BuildingUpdateInput = z.infer<typeof buildingUpdateSchema>;
  * Classroom Schemas
  */
 export const classroomSchema = z.object({
-  number: z.number().int().positive(),
+  classroomNumber: z.number().int().positive(),
   name: string().min(3).max(99),
   buildingId: z.number().int().positive(),
   isAvailable: boolean().optional(),

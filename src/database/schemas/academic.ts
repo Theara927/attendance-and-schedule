@@ -8,6 +8,7 @@ import {
   uniqueIndex,
   index,
   text,
+  unique,
 } from "drizzle-orm/pg-core";
 import {
   academicLevel,
@@ -27,7 +28,7 @@ export const faculties = pgTable("faculties", {
 });
 
 export const departments = pgTable(
-  "skills",
+  "departments",
   {
     id: serial("id").primaryKey(),
     name: varchar("name").unique().notNull(),
@@ -38,22 +39,34 @@ export const departments = pgTable(
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (table) => [
-    uniqueIndex("unique_faculty_skill").on(table.facultyId, table.name),
+    uniqueIndex("unique_faculty_department").on(table.facultyId, table.name),
   ],
 );
 
-export const sessionTimes = pgTable("session_times", {
-  id: serial("id").primaryKey(),
-  shift: studyShiftEnum("shift").notNull(),
-  firstSessionStartTime: varchar("first_session_start_time").notNull(),
-  firstSessionEndTime: varchar("first_session_end_time").notNull(),
-  secondSessionStartTime: varchar("second_session_start_time").notNull(),
-  secondSessionEndTime: varchar("second_session_end_time").notNull(),
-  description: varchar("description"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+export const sessionTimes = pgTable(
+  "session_times",
+  {
+    id: serial("id").primaryKey(),
+    shift: studyShiftEnum("shift").unique().notNull(),
+    firstSessionStartTime: varchar("first_session_start_time").notNull(),
+    firstSessionEndTime: varchar("first_session_end_time").notNull(),
+    secondSessionStartTime: varchar("second_session_start_time").notNull(),
+    secondSessionEndTime: varchar("second_session_end_time").notNull(),
+    description: varchar("description"),
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    unique("unique_session_time").on(
+      table.shift,
+      table.firstSessionStartTime,
+      table.firstSessionEndTime,
+      table.secondSessionStartTime,
+      table.secondSessionEndTime,
+    ),
+  ],
+);
 
 export const academicLevels = pgTable("academic_levels", {
   id: serial("id").primaryKey(),
@@ -93,20 +106,10 @@ export const schedules = pgTable(
       table.year,
       table.departmentId,
     ),
-    index("idx_schedule_filter").on(
-      table.facultyId,
-      table.academicLevelId,
-      table.generation,
-      table.semester,
-      table.year,
-    ),
     index("idx_schedule_faculty_generation").on(
       table.facultyId,
       table.generation,
     ),
-    index("idx_schedule_academic_level").on(table.academicLevelId),
-    index("idx_schedule_semester").on(table.semester),
-    index("idx_schedule_year").on(table.year),
   ],
 );
 
@@ -128,9 +131,9 @@ export const courses = pgTable(
     buildingId: integer("building_id")
       .notNull()
       .references(() => buildings.id),
-    classroomNumber: integer("classroom_number")
+    classroomId: integer("classroom_id")
       .notNull()
-      .references(() => classrooms.number),
+      .references(() => classrooms.id),
     sessionTimeId: integer("session_time_id")
       .notNull()
       .references(() => sessionTimes.id),
@@ -148,7 +151,7 @@ export const courses = pgTable(
       table.scheduleId,
       table.day,
       table.buildingId,
-      table.classroomNumber,
+      table.classroomId,
       table.sessionTimeId,
     ),
   ],
@@ -157,9 +160,7 @@ export const courses = pgTable(
 export const teachers = pgTable(
   "teachers",
   {
-    id: serial("id")
-      .references(() => user.id, { onDelete: "cascade" })
-      .primaryKey(),
+    id: serial("id").primaryKey(),
     userId: text("user_id")
       .references(() => user.id)
       .unique(),

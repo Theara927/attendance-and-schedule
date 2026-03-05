@@ -5,7 +5,7 @@ import type {
   BulkAttendanceInput,
   MarkAttendanceInput,
 } from "@/validators/attendance";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export class AttendanceRepository {
   constructor(private readonly db: DrizzleDb) {}
@@ -26,6 +26,20 @@ export class AttendanceRepository {
       with: {
         course: true,
       },
+    });
+  }
+
+  async findAttendanceByStudentIdCourseIdAndDate(
+    studentId: number,
+    courseId: number,
+    date: Date,
+  ) {
+    return await this.db.query.attendanceRecords.findFirst({
+      where: and(
+        eq(attendanceRecords.studentId, studentId),
+        eq(attendanceRecords.courseId, courseId),
+        eq(attendanceRecords.date, date.toDateString()),
+      ),
     });
   }
 }

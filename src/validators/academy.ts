@@ -105,7 +105,7 @@ export const courseSchema = z.object({
   teacherId: z.number().int().positive(),
   scheduleId: z.number().int().positive(),
   buildingId: z.number().int().positive(),
-  classroomNumber: z.number().int().positive(),
+  classroomId: z.number().int().positive(),
   sessionTimeId: z.number().int().positive(),
   firstSessionNote: z.string().optional(),
   secondSessionNote: z.string().optional(),
@@ -168,6 +168,14 @@ export const scheduleUniqueKeySchema = z.object({
 });
 export const scheduleUpdateSchema = scheduleSchema.partial();
 
+export const scheduleWithCoursesSchema = z.object({
+  schedule: scheduleSchema,
+  courses: z.array(courseSchema),
+});
+
 export type ScheduleInput = z.infer<typeof scheduleSchema>;
 export type ScheduleUpdateInput = z.infer<typeof scheduleUpdateSchema>;
 export type ScheduleUniqueKeyInput = z.infer<typeof scheduleUniqueKeySchema>;
+export type ScheduleWithCoursesInput = z.infer<
+  typeof scheduleWithCoursesSchema
+>;

@@ -1,4 +1,3 @@
-import { createContainer, asClass, asValue, InjectionMode } from "awilix";
 import { db } from "@/database";
 import redis from "@/config/redis";
 import { RedisCache } from "@/utils/redis";
@@ -39,7 +38,7 @@ export interface ICradle {
   // Infrastructure
   db: typeof db;
   redisClient: typeof redis;
-  cache: RedisCache<any>;
+  cache: RedisCache;
   wsManager: WebSocketManager;
 
   // Repositories
@@ -72,45 +71,80 @@ export interface ICradle {
   notificationService: NotificationService;
 }
 
-const container = createContainer<ICradle>({
-  injectionMode: InjectionMode.CLASSIC,
-});
+// Instantiate Infrastructure
+const cache = new RedisCache(redis);
+const wsManager = new WebSocketManager();
 
-container.register({
-  // Infrastructure
-  db: asValue(db),
-  redisClient: asValue(redis),
-  cache: asClass(RedisCache).singleton(),
-  wsManager: asClass(WebSocketManager).singleton(),
+// Instantiate Repositories
+const academicLevelRepository = new AcademicLevelRepository(db);
+const attendanceRepository = new AttendanceRepository(db);
+const buildingRepository = new BuildingRepository(db);
+const classroomRepository = new ClassroomRepository(db);
+const courseRepository = new CourseRepository(db);
+const departmentRepository = new DepartmentRepository(db);
+const facultyRepository = new FacultyRepository(db);
+const scheduleRepository = new ScheduleRepository(db);
+const sessionTimeRepository = new SessionTimeRepository(db);
+const studentRepository = new StudentRepository(db);
+const teacherRepository = new TeacherRepository(db);
+const translationRepository = new TranslationRepository(db);
+const notificationRepository = new NotificationRepository(db);
 
-  // Repositories
-  academicLevelRepository: asClass(AcademicLevelRepository).singleton(),
-  attendanceRepository: asClass(AttendanceRepository).singleton(),
-  buildingRepository: asClass(BuildingRepository).singleton(),
-  classroomRepository: asClass(ClassroomRepository).singleton(),
-  courseRepository: asClass(CourseRepository).singleton(),
-  departmentRepository: asClass(DepartmentRepository).singleton(),
-  facultyRepository: asClass(FacultyRepository).singleton(),
-  scheduleRepository: asClass(ScheduleRepository).singleton(),
-  sessionTimeRepository: asClass(SessionTimeRepository).singleton(),
-  studentRepository: asClass(StudentRepository).singleton(),
-  teacherRepository: asClass(TeacherRepository).singleton(),
-  translationRepository: asClass(TranslationRepository).singleton(),
-  notificationRepository: asClass(NotificationRepository).singleton(),
+// Instantiate Services
+const academicLevelService = new AcademicLevelService(academicLevelRepository);
+const attendanceService = new AttendanceService(attendanceRepository);
+const buildingService = new BuildingService(buildingRepository, cache);
+const classroomService = new ClassroomService(
+  classroomRepository,
+  buildingRepository,
+  cache,
+);
+const departmentService = new DepartmentService(departmentRepository);
+const facultyService = new FacultyService(facultyRepository);
+const scheduleService = new ScheduleService(
+  scheduleRepository,
+  courseRepository,
+);
+const sessionTimeService = new SessionTimeService(sessionTimeRepository);
+const studentService = new StudentService(studentRepository);
+const teacherService = new TeacherService(teacherRepository);
+const translationService = new TranslationService(translationRepository);
+const notificationService = new NotificationService(
+  notificationRepository,
+  studentRepository,
+  wsManager,
+);
 
-  // Services
-  academicLevelService: asClass(AcademicLevelService).singleton(),
-  attendanceService: asClass(AttendanceService).singleton(),
-  buildingService: asClass(BuildingService).singleton(),
-  classroomService: asClass(ClassroomService).singleton(),
-  departmentService: asClass(DepartmentService).singleton(),
-  facultyService: asClass(FacultyService).singleton(),
-  scheduleService: asClass(ScheduleService).singleton(),
-  sessionTimeService: asClass(SessionTimeService).singleton(),
-  studentService: asClass(StudentService).singleton(),
-  teacherService: asClass(TeacherService).singleton(),
-  translationService: asClass(TranslationService).singleton(),
-  notificationService: asClass(NotificationService).singleton(),
-});
+export const container: ICradle = {
+  db,
+  redisClient: redis,
+  cache,
+  wsManager,
 
-export { container };
+  academicLevelRepository,
+  attendanceRepository,
+  buildingRepository,
+  classroomRepository,
+  courseRepository,
+  departmentRepository,
+  facultyRepository,
+  scheduleRepository,
+  sessionTimeRepository,
+  studentRepository,
+  teacherRepository,
+  translationRepository,
+  notificationRepository,
+
+  academicLevelService,
+  attendanceService,
+  buildingService,
+  classroomService,
+  departmentService,
+  facultyService,
+  scheduleService,
+  sessionTimeService,
+  studentService,
+  teacherService,
+  translationService,
+  notificationService,
+};

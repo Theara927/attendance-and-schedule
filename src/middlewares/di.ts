@@ -8,6 +8,6 @@ declare module "hono" {
 }
 
 export const diMiddleware = createMiddleware(async (c, next) => {
-  c.set("container", container.cradle);
+  c.set("container", container);
   await next();
 });

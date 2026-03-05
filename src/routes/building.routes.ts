@@ -4,7 +4,6 @@ import {
   buildingSchema,
   buildingUpdateSchema,
 } from "@/validators/infrastructure";
-import { HTTPException } from "hono/http-exception";
 
 const router = new Hono();
 

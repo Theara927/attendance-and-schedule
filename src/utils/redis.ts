@@ -1,6 +1,6 @@
 import type Redis from "ioredis";
 
-export class RedisCache<T> {
+export class RedisCache {
   private redis: Redis;
 
   constructor(redisClient: Redis) {
@@ -9,7 +9,7 @@ export class RedisCache<T> {
 
   async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
     const stringValue = JSON.stringify(value);
-    if (ttlSeconds) {
+    if (ttlSeconds !== undefined) {
       await this.redis.set(key, stringValue, "EX", ttlSeconds);
     } else {
       await this.redis.set(key, stringValue);
@@ -18,15 +18,25 @@ export class RedisCache<T> {
 
   async get<T>(key: string): Promise<T | null> {
     const value = await this.redis.get(key);
-    return value ? JSON.parse(value) : null;
+    if (!value) return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      console.warn(
+        `RedisCache: failed to parse value for key "${key}" — evicting`,
+      );
+      await this.del(key);
+      return null;
+    }
   }
 
   async del(key: string): Promise<void> {
     await this.redis.del(key);
   }
 
+  // Reserved for future use
   async exists(key: string): Promise<boolean> {
-    const exists = await this.redis.exists(key);
-    return exists === 1;
+    const result = await this.redis.exists(key);
+    return result === 1;
   }
 }

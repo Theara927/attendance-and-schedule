@@ -2,6 +2,7 @@ import { NotificationRepository } from "@/repositories/notification.repository";
 import { StudentRepository } from "@/repositories/student.repository";
 import { WebSocketManager } from "@/lib/ws-manager";
 import { HTTPException } from "hono/http-exception";
+import type { Notification, NotificationRecipient } from "@/types/notification";
 
 export class NotificationService {
   constructor(
@@ -10,53 +11,64 @@ export class NotificationService {
     private readonly wsManager: WebSocketManager,
   ) {}
 
-  async createBroadcastNotification(data: {
+  async createBroadcast(data: {
     title: string;
     message: string;
     facultyId: number;
     targetDepartment?: number;
     targetGeneration?: number;
     priority?: string;
-  }) {
-    const notification = await this.notificationRepo.create(data);
+  }): Promise<Notification> {
+    let notification: Notification;
+    try {
+      notification = await this.notificationRepo.create(data);
+    } catch (error) {
+      throw new HTTPException(500, {
+        message: "Failed to create notification",
+      });
+    }
 
-    // Fetch matching students
-    const allStudents = await this.studentRepo.findAll();
-    const targetStudents = allStudents.filter((s) => {
-      let match = s.facultyId === data.facultyId;
-      if (data.targetDepartment)
-        match = match && s.departmentId === data.targetDepartment;
-      if (data.targetGeneration)
-        match = match && s.generation === data.targetGeneration;
-      return match;
+    if (!notification) {
+      throw new HTTPException(500, {
+        message: "Failed to create notification",
+      });
+    }
+
+    const targetStudents = await this.studentRepo.findByFilter({
+      facultyId: data.facultyId,
+      departmentId: data.targetDepartment,
+      generation: data.targetGeneration,
     });
 
-    // Create recipients
-    const recipients = targetStudents.map((s) => ({
-      notificationId: notification?.id,
-      studentId: s.id,
-    }));
+    if (targetStudents.length > 0) {
+      const recipients = targetStudents.map((s) => ({
+        notificationId: notification.id,
+        studentId: s.id,
+      }));
 
-    if (recipients.length > 0) {
       await this.notificationRepo.createRecipients(recipients);
 
-      // Notify via WebSocket
       targetStudents.forEach((s) => {
-        this.wsManager.sendToUser(s.userId!, {
-          type: "NEW_NOTIFICATION",
-          data: notification,
-        });
+        if (!s.userId) return;
+        try {
+          this.wsManager.sendToUser(s.userId, {
+            type: "NEW_NOTIFICATION",
+            data: notification,
+          });
+        } catch {}
       });
     }
 
     return notification;
   }
 
-  async getMyNotifications(studentId: number) {
-    return await this.notificationRepo.findUnreadByStudent(studentId);
+  async findMyNotifications(
+    studentId: number,
+  ): Promise<NotificationRecipient[]> {
+    return this.notificationRepo.findUnreadByStudent(studentId);
   }
 
-  async markAsRead(recipientId: number) {
+  async markAsRead(recipientId: number): Promise<NotificationRecipient> {
     const updated = await this.notificationRepo.markAsRead(recipientId);
     if (!updated) {
       throw new HTTPException(404, {
@@ -66,11 +78,11 @@ export class NotificationService {
     return updated;
   }
 
-  async getAllNotifications() {
-    return await this.notificationRepo.findAll();
+  async findAll(): Promise<Notification[]> {
+    return this.notificationRepo.findAll();
   }
 
-  async getNotification(id: number) {
+  async findById(id: number): Promise<Notification> {
     const notification = await this.notificationRepo.findById(id);
     if (!notification) {
       throw new HTTPException(404, { message: "Notification not found" });
@@ -78,11 +90,10 @@ export class NotificationService {
     return notification;
   }
 
-  async deleteNotification(id: number) {
+  async delete(id: number): Promise<void> {
     const deleted = await this.notificationRepo.delete(id);
     if (!deleted) {
       throw new HTTPException(404, { message: "Notification not found" });
     }
-    return deleted;
   }
 }

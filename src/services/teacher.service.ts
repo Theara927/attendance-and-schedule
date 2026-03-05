@@ -7,19 +7,29 @@ export class TeacherService {
   constructor(private readonly teacherRepo: TeacherRepository) {}
 
   async create(data: TeacherInput): Promise<Teacher> {
-    return await this.teacherRepo.create(data);
+    return this.teacherRepo.create(data);
   }
 
   async update(id: number, data: TeacherUpdateInput): Promise<Teacher> {
-    const teacher = await this.teacherRepo.update(id, data);
-    if (!teacher) {
+    if (Object.keys(data).length === 0) {
+      throw new HTTPException(400, {
+        message: "Update requires at least one field",
+      });
+    }
+    let update: Teacher | undefined;
+    try {
+      update = await this.teacherRepo.update(id, data);
+    } catch (error) {
+      throw new HTTPException(500, { message: "Failed to update teacher" });
+    }
+    if (!update) {
       throw new HTTPException(404, { message: "Teacher not found" });
     }
-    return teacher;
+    return update;
   }
 
   async delete(id: number): Promise<Teacher> {
-    const teacher = await this.teacherRepo.delete(id);
+    const teacher = this.teacherRepo.delete(id);
     if (!teacher) {
       throw new HTTPException(404, { message: "Teacher not found" });
     }
@@ -35,6 +45,6 @@ export class TeacherService {
   }
 
   async findAll(): Promise<Teacher[]> {
-    return await this.teacherRepo.findAll();
+    return this.teacherRepo.findAll();
   }
 }

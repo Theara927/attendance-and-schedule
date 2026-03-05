@@ -7,29 +7,32 @@ import { eq } from "drizzle-orm";
 export class FacultyRepository {
   constructor(private readonly db: DrizzleDb) {}
 
-  async findOne(id: number): Promise<Faculty | null> {
+  async findOne(id: number): Promise<Faculty | undefined> {
     return this.db.query.faculties
       .findFirst({
         where: eq(faculties.id, id),
       })
-      .then((result) => result || null);
+      .then((result) => result || undefined);
   }
 
   async findAll(): Promise<Faculty[]> {
     return this.db.select().from(faculties);
   }
 
-  async create(data: FacultyInput): Promise<Faculty | null> {
+  async create(data: FacultyInput): Promise<Faculty | undefined> {
     const [created] = await this.db
       .insert(faculties)
       .values({
         name: data.name,
       })
       .returning();
-    return created || null;
+    return created || undefined;
   }
 
-  async update(id: number, data: FacultyUpdateInput): Promise<Faculty | null> {
+  async update(
+    id: number,
+    data: FacultyUpdateInput,
+  ): Promise<Faculty | undefined> {
     const [updated] = await this.db
       .update(faculties)
       .set({
@@ -38,14 +41,14 @@ export class FacultyRepository {
       })
       .where(eq(faculties.id, id))
       .returning();
-    return updated || null;
+    return updated || undefined;
   }
 
-  async delete(id: number): Promise<Faculty | null> {
+  async delete(id: number): Promise<Faculty | undefined> {
     const [deleted] = await this.db
       .delete(faculties)
       .where(eq(faculties.id, id))
       .returning();
-    return deleted || null;
+    return deleted || undefined;
   }
 }

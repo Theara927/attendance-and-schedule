@@ -2,12 +2,14 @@ import { Hono } from "hono";
 import { upgradeWebSocket } from "hono/bun";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { HTTPException } from "hono/http-exception";
+import { auth } from "@/lib/auth";
 
 const router = new Hono();
 
 router.get("/", async (c) => {
   const { notificationService } = c.var.container;
-  const notifications = await notificationService.getAllNotifications();
+  const notifications = await notificationService.findAll();
   return c.json(notifications);
 });
 
@@ -27,49 +29,57 @@ router.post(
   async (c) => {
     const { notificationService } = c.var.container;
     const data = c.req.valid("json");
-    const notification =
-      await notificationService.createBroadcastNotification(data);
-    return c.json(notification);
+    const notification = await notificationService.createBroadcast(data);
+    return c.json(notification, 201);
   },
 );
 
 router.get("/my", async (c) => {
   const { notificationService } = c.var.container;
-  // In a real app, we'd get studentId from auth user
-  const studentId = parseInt(c.req.query("studentId") || "0");
-  const notifications = await notificationService.getMyNotifications(studentId);
+  const rawStudentId = c.req.query("studentId");
+  const studentId = rawStudentId ? parseInt(rawStudentId, 10) : NaN;
+  if (isNaN(studentId)) {
+    throw new HTTPException(400, { message: "Missing or invalid studentId" });
+  }
+  const notifications =
+    await notificationService.findMyNotifications(studentId);
   return c.json(notifications);
 });
 
 router.patch("/read/:id", async (c) => {
   const { notificationService } = c.var.container;
-  const id = parseInt(c.req.param("id"));
+  const id = parseInt(c.req.param("id"), 10);
+  if (isNaN(id)) {
+    throw new HTTPException(400, { message: "Invalid notification ID" });
+  }
   const result = await notificationService.markAsRead(id);
   return c.json(result);
 });
 
-// WebSocket Upgrade Endpoint
 router.get(
   "/ws",
-  upgradeWebSocket((c) => {
+  upgradeWebSocket(async (c) => {
     const { wsManager } = c.var.container;
-    const userId = c.req.query("userId"); // Should be from auth in production
+    const session = await auth.api.getSession(c.req.raw);
+
+    if (!session) {
+      console.warn(`[WS] ${c.req.path} — Unauthorized`);
+      throw new HTTPException(401, { message: "Unauthorized" });
+    }
+
+    const userId = session.user.id;
 
     return {
       onOpen(event, ws) {
-        if (userId) {
-          wsManager.addClient(userId, ws);
-          console.log(`WebSocket opened for user: ${userId}`);
-        }
+        wsManager.addClient(userId, ws);
+        console.log(`WebSocket opened for user: ${userId}`);
       },
       onMessage(event, ws) {
         console.log(`Message from user ${userId}: ${event.data}`);
       },
       onClose(event, ws) {
-        if (userId) {
-          wsManager.removeClient(userId, ws);
-          console.log(`WebSocket closed for user: ${userId}`);
-        }
+        wsManager.removeClient(userId, ws);
+        console.log(`WebSocket closed for user: ${userId}`);
       },
     };
   }),

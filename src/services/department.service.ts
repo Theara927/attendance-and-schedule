@@ -5,28 +5,54 @@ import type {
   DepartmentUpdateInput,
 } from "@/validators/academy";
 import { HTTPException } from "hono/http-exception";
+import { DatabaseError } from "pg";
 
 export class DepartmentService {
   constructor(private readonly departmentRepo: DepartmentRepository) {}
 
   async create(data: DepartmentInput): Promise<Department> {
-    return await this.departmentRepo.create(data);
+    try {
+      return this.departmentRepo.create(data);
+    } catch (error) {
+      if (error instanceof DatabaseError && error.code === "23505") {
+        throw new HTTPException(409, {
+          message: `Department "${data.name}" already exists`,
+        });
+      }
+      throw new HTTPException(500, { message: "Failed to create department" });
+    }
   }
 
   async update(id: number, data: DepartmentUpdateInput): Promise<Department> {
-    const department = await this.departmentRepo.update(id, data);
-    if (!department) {
+    if (Object.keys(data).length === 0) {
+      throw new HTTPException(400, {
+        message: "Update requires at least one field",
+      });
+    }
+
+    let updated: Department | undefined;
+    try {
+      updated = await this.departmentRepo.update(id, data);
+    } catch (error) {
+      if (error instanceof DatabaseError && error.code === "23505") {
+        throw new HTTPException(409, {
+          message: `Department "${data.name}" already exists`,
+        });
+      }
+      throw new HTTPException(500, { message: "Failed to update department" });
+    }
+
+    if (!updated) {
       throw new HTTPException(404, { message: "Department not found" });
     }
-    return department;
+    return updated;
   }
 
-  async delete(id: number): Promise<Department> {
-    const department = await this.departmentRepo.delete(id);
-    if (!department) {
+  async delete(id: number): Promise<void> {
+    const deleted = await this.departmentRepo.delete(id);
+    if (!deleted) {
       throw new HTTPException(404, { message: "Department not found" });
     }
-    return department;
   }
 
   async findById(id: number): Promise<Department> {
@@ -38,6 +64,6 @@ export class DepartmentService {
   }
 
   async findAll(): Promise<Department[]> {
-    return await this.departmentRepo.findAll();
+    return this.departmentRepo.findAll();
   }
 }

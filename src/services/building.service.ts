@@ -9,9 +9,11 @@ import { HTTPException } from "hono/http-exception";
 import { DatabaseError } from "pg";
 
 export class BuildingService {
+  private static readonly CACHE_TTL_SECONDS = 3600;
+
   constructor(
     private readonly buildingRepository: BuildingRepository,
-    private readonly cache: RedisCache<Building>,
+    private readonly cache: RedisCache,
   ) {}
 
   async findAll(): Promise<Building[]> {
@@ -25,26 +27,24 @@ export class BuildingService {
 
     const building = await this.buildingRepository.findOne(id);
     if (!building) {
-      await this.cache.del(cacheKey).catch(() => {});
       throw new HTTPException(404, { message: "Building not found" });
     }
 
-    this.cache.set(cacheKey, building, 3600).catch(() => {});
+    this.cache
+      .set(cacheKey, building, BuildingService.CACHE_TTL_SECONDS)
+      .catch(() => {});
     return building;
   }
 
   async create(data: BuildingInput): Promise<Building> {
-    const existing = await this.buildingRepository.findByName(data.name);
-    if (existing) {
-      throw new HTTPException(409, {
-        message: `Building "${data.name}" already exists`,
-      });
-    }
-
     try {
       const building = await this.buildingRepository.create(data);
       this.cache
-        .set(`buildings:${building.id}`, building, 3600)
+        .set(
+          `buildings:${building.id}`,
+          building,
+          BuildingService.CACHE_TTL_SECONDS,
+        )
         .catch(() => {});
       return building;
     } catch (error) {
@@ -64,7 +64,7 @@ export class BuildingService {
       });
     }
 
-    if ("name" in data && data.name) {
+    if (data.name !== undefined) {
       const existing = await this.buildingRepository.findByName(data.name);
       if (existing && existing.id !== id) {
         throw new HTTPException(409, {
@@ -73,22 +73,26 @@ export class BuildingService {
       }
     }
 
+    let updated: Building;
     try {
-      const updated = await this.buildingRepository.update(id, data);
-      if (!updated) {
-        throw new HTTPException(404, { message: "Building not found" });
-      }
-
-      this.cache.set(`buildings:${id}`, updated, 3600).catch(() => {});
-      return updated;
+      updated = (await this.buildingRepository.update(id, data))!;
     } catch (error) {
       if (error instanceof DatabaseError && error.code === "23505") {
         throw new HTTPException(409, {
           message: `Building name "${data.name}" is already in use`,
         });
       }
-      throw error;
+      throw new HTTPException(500, { message: "Failed to update building" });
     }
+
+    if (!updated) {
+      throw new HTTPException(404, { message: "Building not found" });
+    }
+
+    this.cache
+      .set(`buildings:${id}`, updated, BuildingService.CACHE_TTL_SECONDS)
+      .catch(() => {});
+    return updated;
   }
 
   async delete(id: number): Promise<void> {

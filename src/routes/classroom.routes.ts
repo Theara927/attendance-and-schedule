@@ -11,21 +11,21 @@ const router = new Hono();
 router.get("/", async (c) => {
   const { classroomService } = c.var.container;
   const classrooms = await classroomService.findAll();
-  return c.json(classrooms);
+  return c.json(classrooms, 200);
 });
 
 router.get("/:id", async (c) => {
   const { classroomService } = c.var.container;
   const id = Number(c.req.param("id"));
   const classroom = await classroomService.findById(id);
-  return c.json(classroom);
+  return c.json(classroom, 200);
 });
 
 router.post("/", zValidator("json", classroomSchema), async (c) => {
   const { classroomService } = c.var.container;
   const data = c.req.valid("json");
   const classroom = await classroomService.create(data);
-  return c.json(classroom);
+  return c.json(classroom, 201);
 });
 
 router.put("/:id", zValidator("json", classroomUpdateSchema), async (c) => {
@@ -33,7 +33,7 @@ router.put("/:id", zValidator("json", classroomUpdateSchema), async (c) => {
   const id = Number(c.req.param("id"));
   const data = c.req.valid("json");
   const classroom = await classroomService.update(id, data);
-  return c.json(classroom);
+  return c.json(classroom, 200);
 });
 
 router.delete("/:id", async (c) => {

@@ -1,6 +1,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { scheduleSchema, scheduleUpdateSchema } from "@/validators/academy";
+import {
+  courseSchema,
+  scheduleSchema,
+  scheduleUpdateSchema,
+  scheduleWithCoursesSchema,
+} from "@/validators/academy";
 
 const router = new Hono();
 
@@ -17,14 +22,10 @@ router.get("/:id", async (c) => {
   return c.json(schedule);
 });
 
-router.post("/", zValidator("json", scheduleSchema), async (c) => {
+router.post("/", zValidator("json", scheduleWithCoursesSchema), async (c) => {
   const { scheduleService } = c.var.container;
   const data = c.req.valid("json");
-  // Assuming data contains courses or we need to extract them
-  const result = await scheduleService.createSchedule(
-    data as any,
-    (data as any).courses || [],
-  );
+  const result = await scheduleService.createSchedule(data);
   return c.json(result);
 });
 

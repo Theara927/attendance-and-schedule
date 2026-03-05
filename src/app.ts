@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
-import { errorHandler } from "./middlewares/error.middleware";
-import { diMiddleware } from "./middlewares/di.middleware";
+import { diMiddleware } from "./middlewares/di";
 import buildingRoutes from "./routes/building.routes";
 import classroomRoutes from "./routes/classroom.routes";
 import academicLevelRoutes from "./routes/academic-level.routes";
@@ -14,29 +13,42 @@ import studentRoutes from "./routes/student.routes";
 import teacherRoutes from "./routes/teacher.routes";
 import translationRoutes from "./routes/translation.routes";
 import notificationRoutes from "./routes/notification.routes";
+import authRoutes from "./routes/auth.routes";
+import { auth } from "./lib/auth";
+import { errorHandler } from "./middlewares/error";
 
 const app = new Hono();
 
 app.use("*", logger());
 app.use("*", diMiddleware);
-app.use("*", errorHandler);
 
-app.get("/", (c) => c.text("Hello, Hono!"));
-app.get("/health", (c) => c.json({ status: "ok" }));
+app.on(["POST", "GET"], "/api/auth/*", (c) => {
+  return auth.handler(c.req.raw);
+});
 
-app.route("/buildings", buildingRoutes);
-app.route("/classrooms", classroomRoutes);
-app.route("/academic-levels", academicLevelRoutes);
-app.route("/attendance", attendanceRoutes);
-app.route("/departments", departmentRoutes);
-app.route("/faculties", facultyRoutes);
-app.route("/schedules", scheduleRoutes);
-app.route("/session-times", sessionTimeRoutes);
-app.route("/students", studentRoutes);
-app.route("/teachers", teacherRoutes);
-app.route("/translations", translationRoutes);
-app.route("/notifications", notificationRoutes);
+app.get("/health", (c) =>
+  c.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  }),
+);
 
 app.notFound((c) => c.json({ message: "Route not found" }, 404));
+
+app.route("/api/buildings", buildingRoutes);
+app.route("/api/classrooms", classroomRoutes);
+app.route("/api/academic-levels", academicLevelRoutes);
+app.route("/api/attendance", attendanceRoutes);
+app.route("/api/departments", departmentRoutes);
+app.route("/api/faculties", facultyRoutes);
+app.route("/api/schedules", scheduleRoutes);
+app.route("/api/session-times", sessionTimeRoutes);
+app.route("/api/students", studentRoutes);
+app.route("/api/teachers", teacherRoutes);
+app.route("/api/translations", translationRoutes);
+app.route("/api/notifications", notificationRoutes);
+app.route("/api/authentications", authRoutes);
+
+app.onError((e, c) => errorHandler(c, e));
 
 export default app;

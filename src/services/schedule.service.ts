@@ -1,10 +1,15 @@
 import { db } from "@/database";
-import { schedules } from "@/database/schemas";
 import type { CourseRepository } from "@/repositories/course.repository";
 import { ScheduleRepository } from "@/repositories/schedule.repository";
-import type { CourseInput, ScheduleInput } from "@/validators/academy";
-import { eq } from "drizzle-orm";
+import type { Course, Schedule } from "@/types/academy";
+import type {
+  CourseInput,
+  ScheduleInput,
+  ScheduleUpdateInput,
+  ScheduleWithCoursesInput,
+} from "@/validators/academy";
 import { HTTPException } from "hono/http-exception";
+import { DatabaseError } from "pg";
 
 export class ScheduleService {
   constructor(
@@ -13,11 +18,11 @@ export class ScheduleService {
   ) {}
 
   async createSchedule(
-    scheduleData: ScheduleInput,
-    courseDatas: CourseInput[],
-  ) {
+    data: ScheduleWithCoursesInput,
+  ): Promise<{ schedule: Schedule; courses: Course[] }> {
     try {
-      const result = await db.transaction(async (tx) => {
+      const { schedule: scheduleData, courses: courseDatas } = data;
+      return await db.transaction(async (tx) => {
         const existingSchedule = await this.scheduleRepo.findByUniqueKey(
           {
             facultyId: scheduleData.facultyId,
@@ -28,47 +33,43 @@ export class ScheduleService {
             generation: scheduleData.generation,
             year: scheduleData.year,
           },
-          tx as any,
+          tx,
         );
 
         if (existingSchedule) {
-          throw new HTTPException(400, { message: "Schedule already exists" });
+          throw new HTTPException(409, { message: "Schedule already exists" });
         }
 
-        const schedule = await this.scheduleRepo.create(
-          scheduleData,
-          tx as any,
-        );
-
+        const schedule = await this.scheduleRepo.create(scheduleData, tx);
         if (!schedule) {
-          throw new HTTPException(400, { message: "Schedule not created" });
+          throw new HTTPException(500, {
+            message: "Failed to create schedule",
+          });
         }
 
-        const courseWithSchedule = courseDatas.map((course: CourseInput) => ({
+        const coursesWithSchedule = courseDatas.map((course: CourseInput) => ({
           ...course,
           scheduleId: schedule.id,
         }));
 
-        const course = await this.courseRepo.createMany(
-          courseWithSchedule,
-          tx as any,
+        const courses = await this.courseRepo.createMany(
+          coursesWithSchedule,
+          tx,
         );
-        return { schedule, course };
+        return { schedule, courses };
       });
-      return result;
     } catch (error) {
-      if (error instanceof HTTPException) {
-        throw error;
-      }
+      console.log(error);
+      if (error instanceof HTTPException) throw error;
       throw new HTTPException(500, { message: "Internal server error" });
     }
   }
 
-  async findAll() {
-    return await this.scheduleRepo.findAll();
+  async findAll(): Promise<Schedule[]> {
+    return this.scheduleRepo.findAll();
   }
 
-  async findById(id: number) {
+  async findById(id: number): Promise<Schedule> {
     const schedule = await this.scheduleRepo.findById(id);
     if (!schedule) {
       throw new HTTPException(404, { message: "Schedule not found" });
@@ -76,19 +77,36 @@ export class ScheduleService {
     return schedule;
   }
 
-  async updateSchedule(id: number, scheduleData: any) {
-    const result = await this.scheduleRepo.update(id, scheduleData);
-    if (!result) {
+  async updateSchedule(
+    id: number,
+    scheduleData: ScheduleUpdateInput,
+  ): Promise<Schedule> {
+    if (Object.keys(scheduleData).length === 0) {
+      throw new HTTPException(400, {
+        message: "Update requires at least one field",
+      });
+    }
+
+    let updated: Schedule | null;
+    try {
+      updated = await this.scheduleRepo.update(id, scheduleData);
+    } catch (error) {
+      if (error instanceof DatabaseError && error.code === "23505") {
+        throw new HTTPException(409, { message: "Schedule already exists" });
+      }
+      throw new HTTPException(500, { message: "Failed to update schedule" });
+    }
+
+    if (!updated) {
       throw new HTTPException(404, { message: "Schedule not found" });
     }
-    return result;
+    return updated;
   }
 
-  async deleteSchedule(id: number) {
-    const schedule = await this.scheduleRepo.findById(id);
-    if (!schedule) {
+  async deleteSchedule(id: number): Promise<void> {
+    const deleted = await this.scheduleRepo.delete(id);
+    if (!deleted) {
       throw new HTTPException(404, { message: "Schedule not found" });
     }
-    return await this.scheduleRepo.delete(id);
   }
 }

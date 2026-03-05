@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { user, session, account } from "./authentication";
+import { user, session, account, twoFactor } from "./authentication";
 import {
   faculties,
   departments,
@@ -18,6 +18,7 @@ import { notifications, notificationRecipients } from "./notification";
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  twoFactors: many(twoFactor),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -34,10 +35,16 @@ export const accountRelations = relations(account, ({ one }) => ({
   }),
 }));
 
+export const twoFactorRelations = relations(twoFactor, ({ one }) => ({
+  user: one(user, {
+    fields: [twoFactor.userId],
+    references: [user.id],
+  }),
+}));
+
 // Academic Relations
 export const facultiesRelations = relations(faculties, ({ many }) => ({
   departments: many(departments),
-  academicLevels: many(academicLevels),
   teachers: many(teachers),
   schedules: many(schedules),
   students: many(students),
@@ -56,6 +63,7 @@ export const academicLevelsRelations = relations(
   ({ many }) => ({
     schedules: many(schedules),
     students: many(students),
+    teachers: many(teachers),
   }),
 );
 
@@ -80,6 +88,10 @@ export const teachersRelations = relations(teachers, ({ one, many }) => ({
     fields: [teachers.facultyId],
     references: [faculties.id],
   }),
+  academicLevel: one(academicLevels, {
+    fields: [teachers.academicLevelId],
+    references: [academicLevels.id],
+  }),
   courses: many(courses),
 }));
 
@@ -91,6 +103,10 @@ export const studentsRelations = relations(students, ({ one }) => ({
   faculty: one(faculties, {
     fields: [students.facultyId],
     references: [faculties.id],
+  }),
+  department: one(departments, {
+    fields: [students.departmentId],
+    references: [departments.id],
   }),
 }));
 
@@ -127,8 +143,8 @@ export const coursesRelations = relations(courses, ({ one }) => ({
     references: [buildings.id],
   }),
   classroom: one(classrooms, {
-    fields: [courses.classroomNumber],
-    references: [classrooms.number],
+    fields: [courses.classroomId],
+    references: [classrooms.id],
   }),
   sessionTime: one(sessionTimes, {
     fields: [courses.sessionTimeId],

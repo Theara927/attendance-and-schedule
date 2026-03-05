@@ -13,28 +13,31 @@ import type { CreateNotificationInput } from "@/validators/notification";
 export class NotificationRepository {
   constructor(private readonly db: DrizzleDb) {}
 
-  async create(
-    data: CreateNotificationInput,
-  ): Promise<Notification | undefined> {
-    const [newNotification] = await this.db
+  async create(data: CreateNotificationInput): Promise<Notification> {
+    const [notification] = await this.db
       .insert(notifications)
       .values(data)
       .returning();
-    return newNotification;
+    if (!notification) {
+      throw new Error("Insert did not return a record");
+    }
+    return notification;
   }
 
-  async createRecipients(data: any[]): Promise<void> {
+  async createRecipients(
+    data: { notificationId: number; studentId: number }[],
+  ): Promise<void> {
     await this.db.insert(notificationRecipients).values(data);
   }
 
   async findAll(): Promise<Notification[]> {
-    return await this.db.query.notifications.findMany({
+    return this.db.query.notifications.findMany({
       orderBy: (notifications, { desc }) => [desc(notifications.createdAt)],
     });
   }
 
   async findById(id: number): Promise<Notification | undefined> {
-    return await this.db.query.notifications.findFirst({
+    return this.db.query.notifications.findFirst({
       where: eq(notifications.id, id),
     });
   }
@@ -42,7 +45,7 @@ export class NotificationRepository {
   async findUnreadByStudent(
     studentId: number,
   ): Promise<NotificationRecipient[]> {
-    return await this.db.query.notificationRecipients.findMany({
+    return this.db.query.notificationRecipients.findMany({
       where: and(
         eq(notificationRecipients.studentId, studentId),
         eq(notificationRecipients.isRead, false),
@@ -53,18 +56,22 @@ export class NotificationRepository {
     });
   }
 
-  async markAsRead(recipientId: number) {
-    return await this.db
+  async markAsRead(
+    recipientId: number,
+  ): Promise<NotificationRecipient | undefined> {
+    const [updated] = await this.db
       .update(notificationRecipients)
       .set({ isRead: true, readAt: new Date() })
       .where(eq(notificationRecipients.id, recipientId))
       .returning();
+    return updated;
   }
 
-  async delete(id: number) {
-    return await this.db
+  async delete(id: number): Promise<Notification | undefined> {
+    const [deleted] = await this.db
       .delete(notifications)
       .where(eq(notifications.id, id))
       .returning();
+    return deleted;
   }
 }
