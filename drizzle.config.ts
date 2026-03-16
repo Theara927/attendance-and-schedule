@@ -2,7 +2,7 @@ import { env } from "@/config/environment";
 import type { Config } from "drizzle-kit";
 
 export default {
-  out: "./src/infrastructure/migrations",
+  out: "./src/database/migrations",
   schema: "./src/database/schemas",
   dialect: "postgresql",
   dbCredentials: {
