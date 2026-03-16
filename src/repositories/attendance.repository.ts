@@ -20,7 +20,7 @@ export class AttendanceRepository {
     return attendance;
   }
 
-  async getAttendanceByStudentId(studentId: number) {
+  async getAttendanceByStudentId(studentId: string) {
     return await this.db.query.attendanceRecords.findMany({
       where: eq(attendanceRecords.studentId, studentId),
       with: {
@@ -30,7 +30,7 @@ export class AttendanceRepository {
   }
 
   async findAttendanceByStudentIdCourseIdAndDate(
-    studentId: number,
+    studentId: string,
     courseId: number,
     date: Date,
   ) {

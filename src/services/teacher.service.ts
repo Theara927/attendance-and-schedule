@@ -10,7 +10,7 @@ export class TeacherService {
     return this.teacherRepo.create(data);
   }
 
-  async update(id: number, data: TeacherUpdateInput): Promise<Teacher> {
+  async update(id: string, data: TeacherUpdateInput): Promise<Teacher> {
     if (Object.keys(data).length === 0) {
       throw new HTTPException(400, {
         message: "Update requires at least one field",
@@ -28,7 +28,7 @@ export class TeacherService {
     return update;
   }
 
-  async delete(id: number): Promise<Teacher> {
+  async delete(id: string): Promise<Teacher> {
     const teacher = this.teacherRepo.delete(id);
     if (!teacher) {
       throw new HTTPException(404, { message: "Teacher not found" });
@@ -36,7 +36,7 @@ export class TeacherService {
     return teacher;
   }
 
-  async findById(id: number): Promise<Teacher> {
+  async findById(id: string): Promise<Teacher> {
     const teacher = await this.teacherRepo.findById(id);
     if (!teacher) {
       throw new HTTPException(404, { message: "Teacher not found" });

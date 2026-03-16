@@ -11,7 +11,7 @@ export class TeacherRepository {
     return await this.db.query.teachers.findMany();
   }
 
-  async findById(id: number): Promise<Teacher | undefined> {
+  async findById(id: string): Promise<Teacher | undefined> {
     return await this.db.query.teachers.findFirst({
       where: eq(teachers.id, id),
     });
@@ -23,7 +23,7 @@ export class TeacherRepository {
   }
 
   async update(
-    id: number,
+    id: string,
     data: TeacherUpdateInput,
   ): Promise<Teacher | undefined> {
     const [teacher] = await this.db
@@ -34,7 +34,7 @@ export class TeacherRepository {
     return teacher;
   }
 
-  async delete(id: number): Promise<Teacher> {
+  async delete(id: string): Promise<Teacher> {
     const [deleted] = await this.db
       .delete(teachers)
       .where(eq(teachers.id, id))

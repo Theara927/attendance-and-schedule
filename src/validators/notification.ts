@@ -30,7 +30,7 @@ export const getNotificationSchema = z.object({
 export type GetNotificationInput = z.infer<typeof getNotificationSchema>;
 
 export const getUnreadNotificationsSchema = z.object({
-  studentId: z.number(),
+  studentId: z.string(),
 });
 
 export type GetUnreadNotificationsInput = z.infer<

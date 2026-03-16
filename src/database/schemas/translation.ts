@@ -29,6 +29,5 @@ export const translations = pgTable(
       table.language,
       table.key,
     ),
-    index("idx_namespace_language").on(table.namespace, table.language),
   ],
 );

@@ -174,13 +174,13 @@ export const attendanceRecordsRelations = relations(
 export const userTeacherRelations = relations(user, ({ one }) => ({
   teacher: one(teachers, {
     fields: [user.id],
-    references: [teachers.userId],
+    references: [teachers.id],
   }),
 }));
 
 export const userStudentRelations = relations(user, ({ one }) => ({
   student: one(students, {
     fields: [user.id],
-    references: [students.userId],
+    references: [students.id],
   }),
 }));

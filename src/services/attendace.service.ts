@@ -42,7 +42,7 @@ export class AttendanceService {
   }
 
   async generateAttendanceReportForStudent(
-    studentId: number,
+    studentId: string,
   ): Promise<Record<string, CourseAttendanceSummary>> {
     const report =
       await this.attendanceRepository.getAttendanceByStudentId(studentId);
@@ -93,7 +93,7 @@ export class AttendanceService {
   }
 
   async getAttendanceByStudentId(
-    studentId: number,
+    studentId: string,
   ): Promise<AttendanceRecord[]> {
     return this.attendanceRepository.getAttendanceByStudentId(studentId);
   }

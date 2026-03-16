@@ -3,8 +3,6 @@ import type { CourseRepository } from "@/repositories/course.repository";
 import { ScheduleRepository } from "@/repositories/schedule.repository";
 import type { Course, Schedule } from "@/types/academy";
 import type {
-  CourseInput,
-  ScheduleInput,
   ScheduleUpdateInput,
   ScheduleWithCoursesInput,
 } from "@/validators/academy";
@@ -47,7 +45,7 @@ export class ScheduleService {
           });
         }
 
-        const coursesWithSchedule = courseDatas.map((course: CourseInput) => ({
+        const coursesWithSchedule = courseDatas.map((course) => ({
           ...course,
           scheduleId: schedule.id,
         }));

@@ -49,9 +49,8 @@ export class NotificationService {
       await this.notificationRepo.createRecipients(recipients);
 
       targetStudents.forEach((s) => {
-        if (!s.userId) return;
         try {
-          this.wsManager.sendToUser(s.userId, {
+          this.wsManager.sendToUser(s.id, {
             type: "NEW_NOTIFICATION",
             data: notification,
           });
@@ -63,7 +62,7 @@ export class NotificationService {
   }
 
   async findMyNotifications(
-    studentId: number,
+    studentId: string,
   ): Promise<NotificationRecipient[]> {
     return this.notificationRepo.findUnreadByStudent(studentId);
   }

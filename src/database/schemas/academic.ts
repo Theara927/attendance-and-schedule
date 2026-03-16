@@ -122,7 +122,7 @@ export const courses = pgTable(
     credits: integer("credits"),
     description: varchar("description"),
     day: dayEnum("day").notNull(),
-    teacherId: integer("teacher_id")
+    teacherId: text("teacher_id")
       .notNull()
       .references(() => teachers.id),
     scheduleId: integer("schedule_id")
@@ -160,10 +160,9 @@ export const courses = pgTable(
 export const teachers = pgTable(
   "teachers",
   {
-    id: serial("id").primaryKey(),
-    userId: text("user_id")
-      .references(() => user.id)
-      .unique(),
+    id: text("id")
+      .references(() => user.id, { onDelete: "cascade" })
+      .primaryKey(),
     name: varchar("name").notNull(),
     phone: varchar("phone").unique(),
     email: varchar("email").unique(),
@@ -182,10 +181,9 @@ export const teachers = pgTable(
 export const students = pgTable(
   "students",
   {
-    id: serial("id").primaryKey(),
-    userId: text("user_id")
-      .references(() => user.id)
-      .unique(),
+    id: text("id")
+      .references(() => user.id, { onDelete: "cascade" })
+      .primaryKey(),
     name: varchar("name").notNull(),
     phone: varchar("phone").unique(),
     email: varchar("email").unique().notNull(),

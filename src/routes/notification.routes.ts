@@ -36,10 +36,11 @@ router.post(
 
 router.get("/my", async (c) => {
   const { notificationService } = c.var.container;
-  const rawStudentId = c.req.query("studentId");
-  const studentId = rawStudentId ? parseInt(rawStudentId, 10) : NaN;
-  if (isNaN(studentId)) {
-    throw new HTTPException(400, { message: "Missing or invalid studentId" });
+  const studentId = c.req.query("studentId");
+  if (!studentId) {
+    throw new HTTPException(400, {
+      message: "Missing studentId query parameter",
+    });
   }
   const notifications =
     await notificationService.findMyNotifications(studentId);

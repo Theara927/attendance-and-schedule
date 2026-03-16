@@ -25,7 +25,7 @@ export class NotificationRepository {
   }
 
   async createRecipients(
-    data: { notificationId: number; studentId: number }[],
+    data: { notificationId: number; studentId: string }[],
   ): Promise<void> {
     await this.db.insert(notificationRecipients).values(data);
   }
@@ -43,7 +43,7 @@ export class NotificationRepository {
   }
 
   async findUnreadByStudent(
-    studentId: number,
+    studentId: string,
   ): Promise<NotificationRecipient[]> {
     return this.db.query.notificationRecipients.findMany({
       where: and(

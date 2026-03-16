@@ -21,7 +21,7 @@ router.post(
       },
     });
     await db.insert(students).values({
-      userId: result.user?.id,
+      id: result.user?.id,
       name,
       email,
     });
@@ -46,7 +46,7 @@ router.post(
       },
     });
     await db.insert(teachers).values({
-      userId: result.user?.id,
+      id: result.user?.id,
       name,
       email,
     });

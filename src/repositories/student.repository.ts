@@ -33,7 +33,7 @@ export class StudentRepository {
     });
   }
 
-  async findById(id: number): Promise<Student | undefined> {
+  async findById(id: string): Promise<Student | undefined> {
     return this.db.query.students.findFirst({
       where: eq(students.id, id),
     });
@@ -48,7 +48,7 @@ export class StudentRepository {
   }
 
   async update(
-    id: number,
+    id: string,
     data: StudentUpdateInput,
   ): Promise<Student | undefined> {
     const [student] = await this.db
@@ -59,7 +59,7 @@ export class StudentRepository {
     return student;
   }
 
-  async delete(id: number): Promise<Student | undefined> {
+  async delete(id: string): Promise<Student | undefined> {
     const [deletedStudent] = await this.db
       .delete(students)
       .where(eq(students.id, id))

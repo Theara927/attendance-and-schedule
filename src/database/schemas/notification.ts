@@ -27,7 +27,7 @@ export const notificationRecipients = pgTable("notification_recipients", {
   notificationId: integer("notification_id")
     .references(() => notifications.id)
     .notNull(),
-  studentId: integer("student_id")
+  studentId: text("student_id")
     .references(() => students.id)
     .notNull(),
   isRead: boolean("is_read").default(false),

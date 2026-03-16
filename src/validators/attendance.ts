@@ -9,12 +9,12 @@ export const attendanceStatusEnum = z.enum([
 
 export const markAttendanceSchema = z.object({
   courseId: z.coerce.number().positive(),
-  studentId: z.coerce.number().positive(),
+  studentId: z.string(),
   date: z.iso.date(),
   status: attendanceStatusEnum,
   session: z.coerce.number().positive(),
   notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
-  recordedBy: z.coerce.number().positive(),
+  recordedBy: z.string().optional(),
 });
 
 export const bulkAttendanceSchema = z.object({
@@ -24,7 +24,7 @@ export const bulkAttendanceSchema = z.object({
   mark: z
     .array(
       z.object({
-        studentId: z.coerce.number().positive(),
+        studentId: z.string(),
         status: attendanceStatusEnum,
         notes: z
           .string()
@@ -33,7 +33,7 @@ export const bulkAttendanceSchema = z.object({
       }),
     )
     .min(1, "At least one attendance record is required"),
-  recordedBy: z.coerce.number().positive(),
+  recordedBy: z.string().optional(),
 });
 
 export type MarkAttendanceInput = z.infer<typeof markAttendanceSchema>;
