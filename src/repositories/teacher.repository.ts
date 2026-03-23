@@ -7,6 +7,9 @@ import { eq } from "drizzle-orm";
 export class TeacherRepository {
   constructor(private readonly db: DrizzleDb) {}
 
+  /**
+   *  filter ជំនាញ department កម្រិតថ្នាក់
+   */
   async findAll(): Promise<Teacher[]> {
     return await this.db.query.teachers.findMany();
   }

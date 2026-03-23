@@ -20,6 +20,13 @@ import {
 import { user } from "./authentication";
 import { buildings, classrooms } from "./infrastructure";
 
+export const academicYears = pgTable("academic_years", {
+  id: serial("id").primaryKey(),
+  name: varchar("name"),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+});
+
 export const faculties = pgTable("faculties", {
   id: serial("id").primaryKey(),
   name: varchar("name").unique().notNull(),
@@ -191,6 +198,9 @@ export const students = pgTable(
     departmentId: integer("department_id").references(() => departments.id),
     academicLevelId: integer("academic_level_id").references(
       () => academicLevels.id,
+    ),
+    academicYearId: integer("academic_year_id").references(
+      () => academicYears.id,
     ),
     educationalStatus: educationalStatus("educational_status"),
     year: integer("year"),

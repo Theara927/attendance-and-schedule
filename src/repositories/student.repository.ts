@@ -11,6 +11,11 @@ export class StudentRepository {
     return this.db.query.students.findMany();
   }
 
+  /**
+   * កម្រិតថ្នាក់ មហាវិទ្យាល័យ ជំនាញ
+   *
+   */
+
   async findByFilter(filter: {
     facultyId?: number;
     departmentId?: number;

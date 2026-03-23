@@ -15,7 +15,11 @@ export class ClassroomRepository {
   }
 
   async findAll(): Promise<Classroom[]> {
-    return this.db.query.classrooms.findMany();
+    return this.db.query.classrooms.findMany({
+      with: {
+        building: true,
+      },
+    });
   }
 
   async findByBuildingAndName(
