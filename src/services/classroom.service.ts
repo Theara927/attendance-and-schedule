@@ -1,6 +1,6 @@
 import type { BuildingRepository } from "@/repositories/building.repository";
 import type { ClassroomRepository } from "@/repositories/classroom.repository";
-import type { Classroom } from "@/types/infrastructure";
+import type { Classroom, ClassroomWithBuilding } from "@/types/infrastructure";
 import type { RedisCache } from "@/utils/redis";
 import type {
   ClassroomInput,
@@ -17,8 +17,11 @@ export class ClassroomService {
     private readonly cache: RedisCache,
   ) {}
 
-  async findAll(): Promise<Classroom[]> {
-    return this.classroomRepository.findAll();
+  async findAll() {
+    const classrooms = (await this.classroomRepository.findAll()).map(
+      (classroom) => this.classroomWithBuildingNormalizer(classroom),
+    );
+    return classrooms;
   }
 
   async findById(id: number): Promise<Classroom> {
@@ -124,5 +127,15 @@ export class ClassroomService {
     if (!deleted) {
       throw new HTTPException(404, { message: "Classroom not found" });
     }
+  }
+
+  private classroomWithBuildingNormalizer(classroom: ClassroomWithBuilding) {
+    return {
+      id: classroom.id,
+      name: classroom.name,
+      floor: classroom.floor,
+      buildingId: classroom.buildingId,
+      buildingName: classroom.building.name,
+    };
   }
 }

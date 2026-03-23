@@ -25,6 +25,7 @@ export const academicYears = pgTable("academic_years", {
   name: varchar("name"),
   startDate: timestamp("startDate"),
   endDate: timestamp("endDate"),
+  isCurrent: boolean("is_current").default(false),
 });
 
 export const faculties = pgTable("faculties", {

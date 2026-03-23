@@ -1,6 +1,6 @@
 import { type DrizzleDb } from "@/database";
 import { classrooms } from "@/database/schemas";
-import type { Classroom } from "@/types/infrastructure";
+import type { Classroom, ClassroomWithBuilding } from "@/types/infrastructure";
 import type {
   ClassroomInput,
   ClassroomUpdateInput,
@@ -14,7 +14,7 @@ export class ClassroomRepository {
     return this.db.query.classrooms.findFirst({ where: eq(classrooms.id, id) });
   }
 
-  async findAll(): Promise<Classroom[]> {
+  async findAll(): Promise<ClassroomWithBuilding[]> {
     return this.db.query.classrooms.findMany({
       with: {
         building: true,

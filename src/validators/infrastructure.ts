@@ -20,6 +20,7 @@ export const classroomSchema = z.object({
   classroomNumber: z.number().int().positive(),
   name: string().min(3).max(99),
   buildingId: z.number().int().positive(),
+  floor: z.number().int().positive(),
   isAvailable: boolean().optional(),
 });
 export const classroomUpdateSchema = classroomSchema.partial();

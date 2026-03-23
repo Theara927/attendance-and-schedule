@@ -1,10 +1,7 @@
 import { type DrizzleDb } from "@/database";
 import { attendanceRecords } from "@/database/schemas";
 import type { AttendanceRecord } from "@/types/attendance";
-import type {
-  BulkAttendanceInput,
-  MarkAttendanceInput,
-} from "@/validators/attendance";
+import type { MarkAttendanceInput } from "@/validators/attendance";
 import { and, eq } from "drizzle-orm";
 
 export class AttendanceRepository {

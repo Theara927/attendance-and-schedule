@@ -26,9 +26,9 @@ export const classrooms = pgTable(
   "classrooms",
   {
     id: serial("classroom_id").primaryKey(),
-    classroomNumber: integer("classroom_number").notNull(),
+    classroomNumber: integer("classroom_number").unique().notNull(),
     name: varchar("name").unique().notNull(),
-    floor: integer("floor").unique(),
+    floor: integer("floor").notNull(),
     buildingId: integer("building_id")
       .notNull()
       .references(() => buildings.id),
