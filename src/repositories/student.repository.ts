@@ -11,7 +11,7 @@ import type {
   StudentQueryInput,
   StudentUpdateInput,
 } from "@/validators/academy";
-import { and, count, eq, SQL } from "drizzle-orm";
+import { and, count, eq, ilike, SQL } from "drizzle-orm";
 
 export class StudentRepository {
   constructor(private readonly db: DrizzleDb) {}
@@ -28,17 +28,27 @@ export class StudentRepository {
       academicLevelId,
       page = 1,
       limit = 10,
+      name,
     } = query;
+
+    // Check if no filters are provided
+    if (!facultyId && !departmentId && !academicLevelId && !name?.trim()) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      };
+    }
 
     const safePage = Math.max(1, Math.floor(page));
     const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
 
     const conditions: SQL[] = [];
-    if (facultyId !== undefined)
-      conditions.push(eq(students.facultyId, facultyId));
-    if (departmentId !== undefined)
-      conditions.push(eq(students.departmentId, departmentId));
-    if (academicLevelId !== undefined)
+    if (name?.trim()) conditions.push(ilike(students.name, `%${name.trim()}%`));
+    if (facultyId) conditions.push(eq(students.facultyId, facultyId));
+    if (departmentId) conditions.push(eq(students.departmentId, departmentId));
+    if (academicLevelId)
       conditions.push(eq(students.academicLevelId, academicLevelId));
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;

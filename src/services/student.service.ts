@@ -54,15 +54,6 @@ export class StudentService {
     page: number;
     limit: number;
   }> {
-    const { facultyId, departmentId, academicLevelId, page, limit } = query;
-    if (!facultyId || !departmentId || !academicLevelId) {
-      return {
-        data: [],
-        total: 0,
-        page: 1,
-        limit: 10,
-      };
-    }
     return this.studentRepo.findAll(query);
   }
 

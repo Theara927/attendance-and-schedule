@@ -1,6 +1,10 @@
 import { TeacherRepository } from "@/repositories/teacher.repository";
 import type { Teacher } from "@/types/academy";
-import type { TeacherInput, TeacherUpdateInput } from "@/validators/academy";
+import type {
+  TeacherInput,
+  TeacherQueryInput,
+  TeacherUpdateInput,
+} from "@/validators/academy";
 import { HTTPException } from "hono/http-exception";
 
 export class TeacherService {
@@ -44,7 +48,12 @@ export class TeacherService {
     return teacher;
   }
 
-  async findAll(): Promise<Teacher[]> {
-    return this.teacherRepo.findAll();
+  async findAll(query: TeacherQueryInput): Promise<{
+    data: Teacher[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    return this.teacherRepo.findAll(query);
   }
 }

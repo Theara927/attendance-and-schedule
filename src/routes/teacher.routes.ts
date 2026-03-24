@@ -1,12 +1,17 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { teacherSchema, teacherUpdateSchema } from "@/validators/academy";
+import {
+  teacherQuerySchema,
+  teacherSchema,
+  teacherUpdateSchema,
+} from "@/validators/academy";
 
 const router = new Hono();
 
-router.get("/", async (c) => {
+router.get("/", zValidator("query", teacherQuerySchema), async (c) => {
   const { teacherService } = c.var.container;
-  const teachers = await teacherService.findAll();
+  const query = c.req.valid("query");
+  const teachers = await teacherService.findAll(query);
   return c.json(teachers);
 });
 

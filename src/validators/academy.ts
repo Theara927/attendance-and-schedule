@@ -88,11 +88,12 @@ export const studentSchema = z.object({
 export const studentUpdateSchema = studentSchema.partial();
 
 export const studentQuerySchema = z.object({
-  facultyId: z.number().int().positive().optional(),
-  departmentId: z.number().int().positive().optional(),
-  academicLevelId: z.number().int().positive().optional(),
-  page: z.number().int().positive().default(1),
-  limit: z.number().int().positive().default(10),
+  name: z.string().optional(),
+  facultyId: z.coerce.number().int().positive().optional(),
+  departmentId: z.coerce.number().int().positive().optional(),
+  academicLevelId: z.coerce.number().int().positive().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().default(10),
 });
 
 export type StudentInput = z.infer<typeof studentSchema>;
@@ -113,9 +114,17 @@ export const teacherSchema = z.object({
   isActive: z.boolean().default(true),
 });
 export const teacherUpdateSchema = teacherSchema.partial();
+export const teacherQuerySchema = z.object({
+  name: z.string().optional(),
+  academicLevelId: z.coerce.number().int().positive().optional(),
+  facultyId: z.coerce.number().int().positive().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().default(10),
+});
 
 export type TeacherInput = z.infer<typeof teacherSchema>;
 export type TeacherUpdateInput = z.infer<typeof teacherUpdateSchema>;
+export type TeacherQueryInput = z.infer<typeof teacherQuerySchema>;
 
 /**
  * Course Schemas

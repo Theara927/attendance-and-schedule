@@ -1,17 +1,60 @@
 import { type DrizzleDb } from "@/database";
 import { teachers } from "@/database/schemas";
 import type { Teacher } from "@/types/academy";
-import type { TeacherInput, TeacherUpdateInput } from "@/validators/academy";
-import { eq } from "drizzle-orm";
+import type {
+  TeacherInput,
+  TeacherQueryInput,
+  TeacherUpdateInput,
+} from "@/validators/academy";
+import { and, count, eq, ilike, SQL } from "drizzle-orm";
 
 export class TeacherRepository {
   constructor(private readonly db: DrizzleDb) {}
 
-  /**
-   *  filter ជំនាញ department កម្រិតថ្នាក់
-   */
-  async findAll(): Promise<Teacher[]> {
-    return await this.db.query.teachers.findMany();
+  async findAll(query: TeacherQueryInput): Promise<{
+    data: Teacher[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { name, facultyId, academicLevelId, page, limit } = query;
+    const conditions: SQL[] = [];
+
+    if (!facultyId && !name?.trim() && !academicLevelId) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      };
+    }
+
+    const safePage = Math.max(1, Math.floor(page));
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+
+    if (name?.trim()) conditions.push(ilike(teachers.name, `%${name.trim()}%`));
+    if (facultyId) conditions.push(eq(teachers.facultyId, facultyId));
+    if (academicLevelId)
+      conditions.push(eq(teachers.academicLevelId, academicLevelId));
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [data, countResult] = await Promise.all([
+      this.db.query.teachers.findMany({
+        where,
+        limit: safeLimit,
+        offset: (safePage - 1) * safeLimit,
+      }),
+      this.db.select({ total: count() }).from(teachers).where(where),
+    ]);
+
+    const total = countResult[0]?.total ?? 0;
+
+    return {
+      data,
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
   }
 
   async findById(id: string): Promise<Teacher | undefined> {
