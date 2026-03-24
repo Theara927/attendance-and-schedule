@@ -1,6 +1,6 @@
 import { type DrizzleDb, type Transaction } from "@/database";
-import { schedules } from "@/database/schemas";
-import type { Schedule } from "@/types/academy";
+import { academicYears, schedules } from "@/database/schemas";
+import type { Schedule, ScheduleByAcademicIsCurrent } from "@/types/academy";
 import type {
   ScheduleInput,
   ScheduleUniqueKeyInput,
@@ -69,5 +69,82 @@ export class ScheduleRepository {
       .returning();
 
     return deletedSchedule!;
+  }
+
+  async getScheduleByAcademicIsCurrent(
+    facultyId: number,
+    departmentId: number,
+  ): Promise<ScheduleByAcademicIsCurrent | null> {
+    const schedule = await this.db.query.schedules.findFirst({
+      where: and(
+        eq(schedules.facultyId, facultyId),
+        eq(schedules.departmentId, departmentId),
+      ),
+      columns: {
+        generation: true,
+        semester: true,
+        semesterStart: true,
+        semesterEnd: true,
+        studyShift: true,
+      },
+      with: {
+        faculty: {
+          columns: {
+            name: true,
+          },
+        },
+        department: {
+          columns: {
+            name: true,
+          },
+        },
+        academicLevel: {
+          columns: {
+            level: true,
+          },
+        },
+        classroom: {
+          columns: {
+            name: true,
+          },
+          with: {
+            building: {
+              columns: {
+                name: true,
+              },
+            },
+          },
+        },
+        courses: {
+          columns: {
+            name: true,
+            code: true,
+            credits: true,
+            day: true,
+            firstSessionNote: true,
+            secondSessionNote: true,
+          },
+          with: {
+            sessionTime: {
+              columns: {
+                shift: true,
+                firstSessionStartTime: true,
+                firstSessionEndTime: true,
+                secondSessionStartTime: true,
+                secondSessionEndTime: true,
+              },
+            },
+            teacher: {
+              columns: {
+                name: true,
+                phone: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return schedule || null;
   }
 }

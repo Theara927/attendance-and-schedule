@@ -4,6 +4,7 @@ import type { Classroom, ClassroomWithBuilding } from "@/types/infrastructure";
 import type { RedisCache } from "@/utils/redis";
 import type {
   ClassroomInput,
+  ClassroomQueryInput,
   ClassroomUpdateInput,
 } from "@/validators/infrastructure";
 import { HTTPException } from "hono/http-exception";
@@ -17,11 +18,19 @@ export class ClassroomService {
     private readonly cache: RedisCache,
   ) {}
 
-  async findAll() {
-    const classrooms = (await this.classroomRepository.findAll()).map(
-      (classroom) => this.classroomWithBuildingNormalizer(classroom),
-    );
-    return classrooms;
+  async findAll(query: ClassroomQueryInput): Promise<{
+    data: ClassroomWithBuilding[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { name, floor, isAvailable, page = 1, limit = 10 } = query;
+
+    if (!name && !floor && isAvailable === undefined) {
+      return { data: [], total: 0, page, limit };
+    }
+
+    return await this.classroomRepository.findAll(query);
   }
 
   async findById(id: number): Promise<Classroom> {
@@ -127,15 +136,5 @@ export class ClassroomService {
     if (!deleted) {
       throw new HTTPException(404, { message: "Classroom not found" });
     }
-  }
-
-  private classroomWithBuildingNormalizer(classroom: ClassroomWithBuilding) {
-    return {
-      id: classroom.id,
-      name: classroom.name,
-      floor: classroom.floor,
-      buildingId: classroom.buildingId,
-      buildingName: classroom.building.name,
-    };
   }
 }

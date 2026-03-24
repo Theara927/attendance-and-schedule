@@ -3,9 +3,10 @@ import { buildings } from "@/database/schemas";
 import type { Building } from "@/types/infrastructure";
 import type {
   BuildingInput,
+  BuildingQueryInput,
   BuildingUpdateInput,
 } from "@/validators/infrastructure";
-import { eq } from "drizzle-orm";
+import { and, count, eq, ilike, SQL } from "drizzle-orm";
 
 export class BuildingRepository {
   constructor(private readonly db: DrizzleDb) {}
@@ -20,8 +21,43 @@ export class BuildingRepository {
     });
   }
 
-  async findAll(): Promise<Building[]> {
-    return this.db.query.buildings.findMany();
+  async findAll(
+    query: BuildingQueryInput,
+  ): Promise<{ data: Building[]; total: number; page: number; limit: number }> {
+    const { name, isActive, page = 1, limit = 10 } = query;
+
+    if (!name && isActive === undefined) {
+      return { data: [], total: 0, page, limit };
+    }
+
+    const safePage = Math.max(1, Math.floor(page));
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+
+    const conditions: SQL[] = [];
+    if (name?.trim())
+      conditions.push(ilike(buildings.name, `%${name.trim()}%`));
+    if (isActive !== undefined)
+      conditions.push(eq(buildings.isActive, isActive));
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [data, countResult] = await Promise.all([
+      this.db.query.buildings.findMany({
+        where,
+        columns: {
+          id: true,
+          name: true,
+          isActive: true,
+        },
+        limit: safeLimit,
+        offset: (safePage - 1) * safeLimit,
+      }),
+      this.db.select({ total: count() }).from(buildings).where(where),
+    ]);
+
+    const total = countResult[0]?.total ?? 0;
+
+    return { data, total, page: safePage, limit: safeLimit };
   }
 
   async create(data: BuildingInput): Promise<Building> {

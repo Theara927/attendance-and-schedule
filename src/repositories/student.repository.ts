@@ -1,41 +1,60 @@
 import { type DrizzleDb } from "@/database";
-import { students } from "@/database/schemas";
+import {
+  academicYears,
+  schedules,
+  studentAcademicYears,
+  students,
+} from "@/database/schemas";
 import type { Student } from "@/types/academy";
-import type { StudentInput, StudentUpdateInput } from "@/validators/academy";
-import { and, eq, SQL } from "drizzle-orm";
+import type {
+  StudentInput,
+  StudentQueryInput,
+  StudentUpdateInput,
+} from "@/validators/academy";
+import { and, count, eq, SQL } from "drizzle-orm";
 
 export class StudentRepository {
   constructor(private readonly db: DrizzleDb) {}
 
-  async findAll(): Promise<Student[]> {
-    return this.db.query.students.findMany();
-  }
+  async findAll(query: StudentQueryInput): Promise<{
+    data: Student[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const {
+      facultyId,
+      departmentId,
+      academicLevelId,
+      page = 1,
+      limit = 10,
+    } = query;
 
-  /**
-   * កម្រិតថ្នាក់ មហាវិទ្យាល័យ ជំនាញ
-   *
-   */
+    const safePage = Math.max(1, Math.floor(page));
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
 
-  async findByFilter(filter: {
-    facultyId?: number;
-    departmentId?: number;
-    generation?: number;
-  }): Promise<Student[]> {
-    const conditions = [
-      filter.facultyId !== undefined
-        ? eq(students.facultyId, filter.facultyId)
-        : undefined,
-      filter.departmentId !== undefined
-        ? eq(students.departmentId, filter.departmentId)
-        : undefined,
-      filter.generation !== undefined
-        ? eq(students.generation, filter.generation)
-        : undefined,
-    ].filter(Boolean) as SQL[];
+    const conditions: SQL[] = [];
+    if (facultyId !== undefined)
+      conditions.push(eq(students.facultyId, facultyId));
+    if (departmentId !== undefined)
+      conditions.push(eq(students.departmentId, departmentId));
+    if (academicLevelId !== undefined)
+      conditions.push(eq(students.academicLevelId, academicLevelId));
 
-    return this.db.query.students.findMany({
-      where: conditions.length > 0 ? and(...conditions) : undefined,
-    });
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [data, countResult] = await Promise.all([
+      this.db.query.students.findMany({
+        where,
+        limit: safeLimit,
+        offset: (safePage - 1) * safeLimit,
+      }),
+      this.db.select({ total: count() }).from(students).where(where),
+    ]);
+
+    const total = countResult[0]?.total ?? 0;
+
+    return { data, total, page: safePage, limit: safeLimit };
   }
 
   async findById(id: string): Promise<Student | undefined> {
@@ -70,5 +89,49 @@ export class StudentRepository {
       .where(eq(students.id, id))
       .returning();
     return deletedStudent;
+  }
+
+  async findScheduleByStudentIdAndAcademicYearId(studentId: string) {
+    const [student, currentYear] = await Promise.all([
+      this.db.query.students.findFirst({
+        where: eq(students.id, studentId),
+        columns: { id: true, academicLevelId: true, departmentId: true },
+      }),
+      this.db.query.academicYears.findFirst({
+        where: eq(academicYears.isCurrent, true),
+        columns: { id: true },
+      }),
+    ]);
+
+    if (!student || !currentYear) return null;
+    if (!student.academicLevelId || !student.departmentId) return null;
+
+    return this.db.query.studentAcademicYears.findFirst({
+      where: and(
+        eq(studentAcademicYears.studentId, studentId),
+        eq(studentAcademicYears.academicYearId, currentYear.id),
+      ),
+      with: {
+        academicYear: {
+          with: {
+            schedules: {
+              where: (schedules, { and, eq }) =>
+                and(
+                  eq(schedules.academicLevelId, student.academicLevelId!),
+                  eq(schedules.departmentId, student.departmentId!),
+                ),
+              with: {
+                courses: {
+                  with: {
+                    teacher: true,
+                    sessionTime: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
   }
 }

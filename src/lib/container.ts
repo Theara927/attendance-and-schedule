@@ -16,6 +16,7 @@ import { StudentRepository } from "@/repositories/student.repository";
 import { TeacherRepository } from "@/repositories/teacher.repository";
 import { TranslationRepository } from "@/repositories/translation.repository";
 import { NotificationRepository } from "@/repositories/notification.repository";
+import { AcademicYearRepository } from "@/repositories/academic-year.repository";
 
 // Services
 import { AcademicLevelService } from "@/services/academic-level.service";
@@ -30,6 +31,7 @@ import { StudentService } from "@/services/student.service";
 import { TeacherService } from "@/services/teacher.service";
 import { TranslationService } from "@/services/translation.service";
 import { NotificationService } from "@/services/notification.service";
+import { AcademicYearService } from "@/services/academic-year.service";
 
 // WebSocket
 import { WebSocketManager } from "@/lib/ws-manager";
@@ -69,6 +71,7 @@ export interface ICradle {
   teacherService: TeacherService;
   translationService: TranslationService;
   notificationService: NotificationService;
+  academicYearService: AcademicYearService;
 }
 
 // Instantiate Infrastructure
@@ -89,6 +92,7 @@ const studentRepository = new StudentRepository(db);
 const teacherRepository = new TeacherRepository(db);
 const translationRepository = new TranslationRepository(db);
 const notificationRepository = new NotificationRepository(db);
+const academicYearRepository = new AcademicYearRepository(db);
 
 // Instantiate Services
 const academicLevelService = new AcademicLevelService(academicLevelRepository);
@@ -114,6 +118,7 @@ const notificationService = new NotificationService(
   studentRepository,
   wsManager,
 );
+const academicYearService = new AcademicYearService(academicYearRepository);
 
 export const container: ICradle = {
   db,
@@ -147,4 +152,5 @@ export const container: ICradle = {
   teacherService,
   translationService,
   notificationService,
+  academicYearService,
 };

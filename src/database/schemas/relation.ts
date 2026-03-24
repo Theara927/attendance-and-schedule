@@ -8,6 +8,8 @@ import {
   teachers,
   students,
   sessionTimes,
+  academicYears,
+  studentAcademicYears,
 } from "./academic";
 import { buildings, classrooms } from "./infrastructure";
 import { courses } from "./academic";
@@ -67,6 +69,11 @@ export const academicLevelsRelations = relations(
   }),
 );
 
+export const academicYearsRelations = relations(academicYears, ({ many }) => ({
+  schedules: many(schedules),
+  students: many(students),
+}));
+
 export const schedulesRelations = relations(schedules, ({ one, many }) => ({
   faculty: one(faculties, {
     fields: [schedules.facultyId],
@@ -80,7 +87,15 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
     fields: [schedules.academicLevelId],
     references: [academicLevels.id],
   }),
+  academicYear: one(academicYears, {
+    fields: [schedules.academicYearId],
+    references: [academicYears.id],
+  }),
   courses: many(courses),
+  classroom: one(classrooms, {
+    fields: [schedules.classroomId],
+    references: [classrooms.id],
+  }),
 }));
 
 export const teachersRelations = relations(teachers, ({ one, many }) => ({
@@ -95,7 +110,7 @@ export const teachersRelations = relations(teachers, ({ one, many }) => ({
   courses: many(courses),
 }));
 
-export const studentsRelations = relations(students, ({ one }) => ({
+export const studentsRelations = relations(students, ({ one, many }) => ({
   academicLevel: one(academicLevels, {
     fields: [students.academicLevelId],
     references: [academicLevels.id],
@@ -108,7 +123,22 @@ export const studentsRelations = relations(students, ({ one }) => ({
     fields: [students.departmentId],
     references: [departments.id],
   }),
+  academicYears: many(academicYears),
 }));
+
+export const studentAcademicYearsRelations = relations(
+  studentAcademicYears,
+  ({ one }) => ({
+    student: one(students, {
+      fields: [studentAcademicYears.studentId],
+      references: [students.id],
+    }),
+    academicYear: one(academicYears, {
+      fields: [studentAcademicYears.academicYearId],
+      references: [academicYears.id],
+    }),
+  }),
+);
 
 // Infrastructure Relations
 export const buildingsRelations = relations(buildings, ({ many }) => ({
@@ -137,14 +167,6 @@ export const coursesRelations = relations(courses, ({ one }) => ({
   schedule: one(schedules, {
     fields: [courses.scheduleId],
     references: [schedules.id],
-  }),
-  building: one(buildings, {
-    fields: [courses.buildingId],
-    references: [buildings.id],
-  }),
-  classroom: one(classrooms, {
-    fields: [courses.classroomId],
-    references: [classrooms.id],
   }),
   sessionTime: one(sessionTimes, {
     fields: [courses.sessionTimeId],

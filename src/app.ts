@@ -14,6 +14,7 @@ import teacherRoutes from "./routes/teacher.routes";
 import translationRoutes from "./routes/translation.routes";
 import notificationRoutes from "./routes/notification.routes";
 import authRoutes from "./routes/auth.routes";
+import academicYearRoutes from "./routes/academic-year.routes";
 import { auth } from "./lib/auth";
 import { errorHandler } from "./middlewares/error";
 
@@ -48,6 +49,7 @@ app.route("/api/teachers", teacherRoutes);
 app.route("/api/translations", translationRoutes);
 app.route("/api/notifications", notificationRoutes);
 app.route("/api/authentications", authRoutes);
+app.route("/api/academic-years", academicYearRoutes);
 
 app.onError((e, c) => errorHandler(c, e));
 

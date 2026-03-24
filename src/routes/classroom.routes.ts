@@ -2,15 +2,17 @@ import { type Classroom } from "@/types/infrastructure";
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
+  classroomQuerySchema,
   classroomSchema,
   classroomUpdateSchema,
 } from "@/validators/infrastructure";
 
 const router = new Hono();
 
-router.get("/", async (c) => {
+router.get("/", zValidator("query", classroomQuerySchema), async (c) => {
   const { classroomService } = c.var.container;
-  const classrooms = await classroomService.findAll();
+  const query = c.req.valid("query");
+  const classrooms = await classroomService.findAll(query);
   return c.json(classrooms, 200);
 });
 

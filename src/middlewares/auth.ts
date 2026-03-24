@@ -10,6 +10,7 @@ const authentication = createMiddleware<{
   const session = await auth.api.getSession(c.req.raw);
   if (!session) {
     console.warn(`[${c.req.method}] ${c.req.path} — Unauthorized`);
+    console.debug("Headers:", Object.fromEntries(c.req.raw.headers.entries()));
     return c.json({ error: "Unauthorized" }, 401);
   }
   c.set("user", session.user);

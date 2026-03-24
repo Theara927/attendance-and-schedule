@@ -1,15 +1,17 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
+  buildingQuerySchema,
   buildingSchema,
   buildingUpdateSchema,
 } from "@/validators/infrastructure";
 
 const router = new Hono();
 
-router.get("/", async (c) => {
+router.get("/", zValidator("query", buildingQuerySchema), async (c) => {
   const { buildingService } = c.var.container;
-  const buildings = await buildingService.findAll();
+  const query = c.req.valid("query");
+  const buildings = await buildingService.findAll(query);
   return c.json(buildings);
 });
 

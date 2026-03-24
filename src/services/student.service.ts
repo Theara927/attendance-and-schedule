@@ -1,6 +1,10 @@
 import type { StudentRepository } from "@/repositories/student.repository";
 import type { Student } from "@/types/academy";
-import type { StudentInput, StudentUpdateInput } from "@/validators/academy";
+import type {
+  StudentInput,
+  StudentQueryInput,
+  StudentUpdateInput,
+} from "@/validators/academy";
 import { HTTPException } from "hono/http-exception";
 
 export class StudentService {
@@ -44,7 +48,32 @@ export class StudentService {
     return student;
   }
 
-  async findAll(): Promise<Student[]> {
-    return this.studentRepo.findAll();
+  async findAll(query: StudentQueryInput): Promise<{
+    data: Student[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { facultyId, departmentId, academicLevelId, page, limit } = query;
+    if (!facultyId || !departmentId || !academicLevelId) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      };
+    }
+    return this.studentRepo.findAll(query);
+  }
+
+  async findScheduleByStudentIdAndAcademicYearId(studentId: string) {
+    const result =
+      await this.studentRepo.findScheduleByStudentIdAndAcademicYearId(
+        studentId,
+      );
+    if (!result) {
+      throw new HTTPException(404, { message: "Student not found" });
+    }
+    return result;
   }
 }
