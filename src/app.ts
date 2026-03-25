@@ -17,11 +17,23 @@ import authRoutes from "./routes/auth.routes";
 import academicYearRoutes from "./routes/academic-year.routes";
 import { auth } from "./lib/auth";
 import { errorHandler } from "./middlewares/error";
+import { cors } from "hono/cors";
 
 const app = new Hono();
 
 app.use("*", logger());
 app.use("*", diMiddleware);
+app.use(
+  "*",
+  cors({
+    origin: ["http://localhost:5173"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+    credentials: true,
+  }),
+);
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
   return auth.handler(c.req.raw);
