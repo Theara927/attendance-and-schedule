@@ -52,7 +52,7 @@ router.delete("/:id", async (c) => {
   return c.json(student);
 });
 
-router.get("/attendance", authentication, async (c) => {
+router.get("/attendance/report", authentication, async (c) => {
   const user = c.get("user");
   const { attendanceService } = c.var.container;
   const records = await attendanceService.generateAttendanceReportForStudent(
