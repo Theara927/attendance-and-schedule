@@ -7,9 +7,10 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  trustedOrigins: ["http://localhost:5173"],
   rateLimit: {
-    windowMs: 60 * 1000, // 1 minute
-    max: 10, // 10 requests per minute
+    windowMs: 60 * 1000,
+    max: 10,
     storage: "database",
   },
   emailAndPassword: {

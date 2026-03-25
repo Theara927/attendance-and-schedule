@@ -61,12 +61,11 @@ router.get("/attendance", authentication, async (c) => {
   return c.json(records);
 });
 
-router.get("/schedule/current-academic-year/:id", async (c) => {
+router.get("/schedule/current-academic-year", authentication, async (c) => {
+  const user = c.get("user");
   const { studentService } = c.var.container;
   const schedule =
-    await studentService.findScheduleByStudentIdAndAcademicYearId(
-      c.req.param("id"),
-    );
+    await studentService.findScheduleByStudentIdAndCurrentAcademicYear(user.id);
   return c.json(schedule);
 });
 

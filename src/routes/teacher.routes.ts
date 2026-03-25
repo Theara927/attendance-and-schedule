@@ -5,6 +5,7 @@ import {
   teacherSchema,
   teacherUpdateSchema,
 } from "@/validators/academy";
+import authentication from "@/middlewares/auth";
 
 const router = new Hono();
 
@@ -15,10 +16,10 @@ router.get("/", zValidator("query", teacherQuerySchema), async (c) => {
   return c.json(teachers);
 });
 
-router.get("/:id", async (c) => {
+router.get("/profile/me", authentication, async (c) => {
+  const user = c.get("user");
   const { teacherService } = c.var.container;
-  const id = c.req.param("id");
-  const teacher = await teacherService.findById(id);
+  const teacher = await teacherService.findById(user.id);
   return c.json(teacher);
 });
 

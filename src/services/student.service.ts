@@ -67,4 +67,15 @@ export class StudentService {
     }
     return result;
   }
+
+  async findScheduleByStudentIdAndCurrentAcademicYear(studentId: string) {
+    const result =
+      await this.studentRepo.findScheduleByStudentIdAndCurrentAcademicYear(
+        studentId,
+      );
+    if (!result) {
+      throw new HTTPException(404, { message: "Student not found" });
+    }
+    return result;
+  }
 }

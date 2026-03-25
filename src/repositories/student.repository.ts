@@ -144,4 +144,36 @@ export class StudentRepository {
       },
     });
   }
+
+  async findScheduleByStudentIdAndCurrentAcademicYear(studentId: string) {
+    const [student, currentYear] = await Promise.all([
+      this.db.query.students.findFirst({
+        where: eq(students.id, studentId),
+        columns: { id: true, academicLevelId: true, departmentId: true },
+      }),
+      this.db.query.academicYears.findFirst({
+        where: eq(academicYears.isCurrent, true),
+        columns: { id: true },
+      }),
+    ]);
+
+    if (!student || !currentYear) return null;
+    if (!student.academicLevelId || !student.departmentId) return null;
+
+    return this.db.query.schedules.findMany({
+      where: and(
+        eq(schedules.academicLevelId, student.academicLevelId),
+        eq(schedules.departmentId, student.departmentId),
+        eq(schedules.academicYearId, currentYear.id),
+      ),
+      with: {
+        courses: {
+          with: {
+            teacher: true,
+            sessionTime: true,
+          },
+        },
+      },
+    });
+  }
 }
