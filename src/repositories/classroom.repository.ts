@@ -26,6 +26,31 @@ export class ClassroomRepository {
     const safePage = Math.max(1, Math.floor(page));
     const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
 
+    if (name === "all" && floor === undefined && isAvailable === undefined) {
+      const [data, countResult] = await Promise.all([
+        this.db.query.classrooms.findMany({
+          columns: {
+            id: true,
+            name: true,
+            classroomNumber: true,
+            floor: true,
+            isAvailable: true,
+          },
+          with: {
+            building: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        }),
+        this.db.select({ total: count() }).from(classrooms),
+      ]);
+
+      return { data, total: countResult[0]?.total ?? 0, page, limit };
+    }
+
     const conditions: SQL[] = [];
     if (name?.trim())
       conditions.push(ilike(classrooms.name, `%${name.trim()}%`));

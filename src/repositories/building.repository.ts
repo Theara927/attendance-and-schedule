@@ -26,14 +26,29 @@ export class BuildingRepository {
   ): Promise<{ data: Building[]; total: number; page: number; limit: number }> {
     const { name, isActive, page = 1, limit = 10 } = query;
 
-    if (!name && isActive === undefined) {
-      return { data: [], total: 0, page, limit };
-    }
-
     const safePage = Math.max(1, Math.floor(page));
     const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
 
+    if (name === "all" && isActive === undefined) {
+      const [data, countResult] = await Promise.all([
+        this.db.query.buildings.findMany({
+          columns: { id: true, name: true, isActive: true },
+          limit: safeLimit,
+          offset: (safePage - 1) * safeLimit,
+        }),
+        this.db.select({ total: count() }).from(buildings),
+      ]);
+
+      return {
+        data,
+        total: countResult[0]?.total ?? 0,
+        page: safePage,
+        limit: safeLimit,
+      };
+    }
+
     const conditions: SQL[] = [];
+
     if (name?.trim())
       conditions.push(ilike(buildings.name, `%${name.trim()}%`));
     if (isActive !== undefined)
@@ -44,20 +59,19 @@ export class BuildingRepository {
     const [data, countResult] = await Promise.all([
       this.db.query.buildings.findMany({
         where,
-        columns: {
-          id: true,
-          name: true,
-          isActive: true,
-        },
+        columns: { id: true, name: true, isActive: true },
         limit: safeLimit,
         offset: (safePage - 1) * safeLimit,
       }),
       this.db.select({ total: count() }).from(buildings).where(where),
     ]);
 
-    const total = countResult[0]?.total ?? 0;
-
-    return { data, total, page: safePage, limit: safeLimit };
+    return {
+      data,
+      total: countResult[0]?.total ?? 0,
+      page: safePage,
+      limit: safeLimit,
+    };
   }
 
   async create(data: BuildingInput): Promise<Building> {

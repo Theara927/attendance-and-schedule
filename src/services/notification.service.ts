@@ -3,6 +3,7 @@ import { StudentRepository } from "@/repositories/student.repository";
 import { WebSocketManager } from "@/lib/ws-manager";
 import { HTTPException } from "hono/http-exception";
 import type { Notification, NotificationRecipient } from "@/types/notification";
+import type { CreateNotificationInput } from "@/validators/notification";
 
 export class NotificationService {
   constructor(
@@ -11,14 +12,7 @@ export class NotificationService {
     private readonly wsManager: WebSocketManager,
   ) {}
 
-  async createBroadcast(data: {
-    title: string;
-    message: string;
-    facultyId: number;
-    targetDepartment?: number;
-    targetGeneration?: number;
-    priority?: string;
-  }): Promise<Notification> {
+  async createBroadcast(data: CreateNotificationInput): Promise<Notification> {
     let notification: Notification;
     try {
       notification = await this.notificationRepo.create(data);
@@ -67,8 +61,14 @@ export class NotificationService {
     return this.notificationRepo.findUnreadByStudent(studentId);
   }
 
-  async markAsRead(recipientId: number): Promise<NotificationRecipient> {
-    const updated = await this.notificationRepo.markAsRead(recipientId);
+  async markAsRead(
+    recipientId: number,
+    studentId: string,
+  ): Promise<NotificationRecipient> {
+    const updated = await this.notificationRepo.markAsRead(
+      recipientId,
+      studentId,
+    );
     if (!updated) {
       throw new HTTPException(404, {
         message: "Notification recipient not found",

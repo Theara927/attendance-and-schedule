@@ -20,15 +20,6 @@ export class TeacherRepository {
     const { name, facultyId, academicLevelId, page, limit } = query;
     const conditions: SQL[] = [];
 
-    if (!facultyId && !name?.trim() && !academicLevelId) {
-      return {
-        data: [],
-        total: 0,
-        page: 1,
-        limit: 10,
-      };
-    }
-
     const safePage = Math.max(1, Math.floor(page));
     const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
 

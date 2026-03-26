@@ -54,6 +54,10 @@ export class TeacherService {
     page: number;
     limit: number;
   }> {
+    const { name, facultyId, academicLevelId, page, limit } = query;
+    if (!facultyId && !academicLevelId && !name?.trim()) {
+      return { data: [], total: 0, page, limit };
+    }
     return this.teacherRepo.findAll(query);
   }
 }

@@ -11,7 +11,11 @@ export class StudentService {
   constructor(private readonly studentRepo: StudentRepository) {}
 
   async create(data: StudentInput): Promise<Student> {
-    return this.studentRepo.create(data);
+    const student = await this.studentRepo.create(data);
+    if (!student) {
+      throw new HTTPException(400, { message: "Failed to create student" });
+    }
+    return student;
   }
 
   async update(id: string, data: StudentUpdateInput): Promise<Student> {
@@ -54,6 +58,16 @@ export class StudentService {
     page: number;
     limit: number;
   }> {
+    const {
+      facultyId,
+      departmentId,
+      academicLevelId,
+      page = 1,
+      limit = 10,
+    } = query;
+    if (!facultyId && !departmentId && !academicLevelId) {
+      return { data: [], total: 0, page, limit };
+    }
     return this.studentRepo.findAll(query);
   }
 

@@ -20,6 +20,10 @@ export class BuildingService {
   async findAll(
     query: BuildingQueryInput,
   ): Promise<{ data: Building[]; total: number; page: number; limit: number }> {
+    const { name, isActive, page = 1, limit = 10 } = query;
+    if (!name && !isActive) {
+      return { data: [], total: 0, page, limit };
+    }
     return this.buildingRepository.findAll(query);
   }
 

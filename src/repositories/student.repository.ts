@@ -22,24 +22,8 @@ export class StudentRepository {
     page: number;
     limit: number;
   }> {
-    const {
-      facultyId,
-      departmentId,
-      academicLevelId,
-      page = 1,
-      limit = 10,
-      name,
-    } = query;
-
-    // Check if no filters are provided
-    if (!facultyId && !departmentId && !academicLevelId && !name?.trim()) {
-      return {
-        data: [],
-        total: 0,
-        page: 1,
-        limit: 10,
-      };
-    }
+    const { facultyId, departmentId, academicLevelId, page, limit, name } =
+      query;
 
     const safePage = Math.max(1, Math.floor(page));
     const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
@@ -50,6 +34,8 @@ export class StudentRepository {
     if (departmentId) conditions.push(eq(students.departmentId, departmentId));
     if (academicLevelId)
       conditions.push(eq(students.academicLevelId, academicLevelId));
+    if (query.generation)
+      conditions.push(eq(students.generation, query.generation));
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -73,11 +59,8 @@ export class StudentRepository {
     });
   }
 
-  async create(data: StudentInput): Promise<Student> {
+  async create(data: StudentInput): Promise<Student | undefined> {
     const [student] = await this.db.insert(students).values(data).returning();
-    if (!student) {
-      throw new Error("Insert did not return a record");
-    }
     return student;
   }
 
@@ -99,6 +82,25 @@ export class StudentRepository {
       .where(eq(students.id, id))
       .returning();
     return deletedStudent;
+  }
+
+  async findByFilter(filter: {
+    facultyId?: number;
+    departmentId?: number;
+    generation?: number;
+  }): Promise<Student[]> {
+    const conditions: SQL[] = [];
+    if (filter.facultyId) conditions.push(eq(students.facultyId, filter.facultyId));
+    if (filter.departmentId)
+      conditions.push(eq(students.departmentId, filter.departmentId));
+    if (filter.generation)
+      conditions.push(eq(students.generation, filter.generation));
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return this.db.query.students.findMany({
+      where,
+    });
   }
 
   async findScheduleByStudentIdAndAcademicYearId(studentId: string) {

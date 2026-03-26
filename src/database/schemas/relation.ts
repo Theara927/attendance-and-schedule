@@ -124,6 +124,7 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
     references: [departments.id],
   }),
   academicYears: many(academicYears),
+  notifications: many(notificationRecipients),
 }));
 
 export const studentAcademicYearsRelations = relations(
@@ -206,3 +207,22 @@ export const userStudentRelations = relations(user, ({ one }) => ({
     references: [students.id],
   }),
 }));
+
+// Notification Relations
+export const notificationsRelations = relations(notifications, ({ many }) => ({
+  recipients: many(notificationRecipients),
+}));
+
+export const notificationRecipientsRelations = relations(
+  notificationRecipients,
+  ({ one }) => ({
+    notification: one(notifications, {
+      fields: [notificationRecipients.notificationId],
+      references: [notifications.id],
+    }),
+    student: one(students, {
+      fields: [notificationRecipients.studentId],
+      references: [students.id],
+    }),
+  }),
+);

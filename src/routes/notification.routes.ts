@@ -4,6 +4,8 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "@/lib/auth";
+import authentication from "@/middlewares/auth";
+import { markAsReadSchema } from "@/validators/notification";
 
 const router = new Hono();
 
@@ -34,26 +36,18 @@ router.post(
   },
 );
 
-router.get("/my", async (c) => {
+router.get("/my-notifications", authentication, async (c) => {
   const { notificationService } = c.var.container;
-  const studentId = c.req.query("studentId");
-  if (!studentId) {
-    throw new HTTPException(400, {
-      message: "Missing studentId query parameter",
-    });
-  }
-  const notifications =
-    await notificationService.findMyNotifications(studentId);
+  const { id } = c.get("user");
+  const notifications = await notificationService.findMyNotifications(id);
   return c.json(notifications);
 });
 
-router.patch("/read/:id", async (c) => {
+router.patch("/read/:id", authentication, async (c) => {
   const { notificationService } = c.var.container;
-  const id = parseInt(c.req.param("id"), 10);
-  if (isNaN(id)) {
-    throw new HTTPException(400, { message: "Invalid notification ID" });
-  }
-  const result = await notificationService.markAsRead(id);
+  const { id } = c.get("user");
+  const { id: recipientId } = c.req.param();
+  const result = await notificationService.markAsRead(Number(recipientId), id);
   return c.json(result);
 });
 

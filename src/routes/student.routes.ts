@@ -6,6 +6,7 @@ import {
   studentUpdateSchema,
 } from "@/validators/academy";
 import authentication from "@/middlewares/auth";
+import { auth } from "@/lib/auth";
 
 const router = new Hono();
 
@@ -30,10 +31,21 @@ router.get("/profile/me", authentication, async (c) => {
   return c.json(student);
 });
 
-router.post("/", zValidator("json", studentSchema), async (c) => {
+router.post("/", zValidator("json", studentSchema.omit({ id: true })), async (c) => {
   const { studentService } = c.var.container;
   const data = c.req.valid("json");
-  const student = await studentService.create(data);
+  const { user } = await auth.api.signUpEmail({
+    body: {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      role: "student",
+    },
+  });
+  const student = await studentService.create({
+    ...data,
+    id: user.id,
+  });
   return c.json(student);
 });
 

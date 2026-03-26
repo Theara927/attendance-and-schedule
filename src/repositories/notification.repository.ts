@@ -58,11 +58,17 @@ export class NotificationRepository {
 
   async markAsRead(
     recipientId: number,
+    studentId: string,
   ): Promise<NotificationRecipient | undefined> {
     const [updated] = await this.db
       .update(notificationRecipients)
       .set({ isRead: true, readAt: new Date() })
-      .where(eq(notificationRecipients.id, recipientId))
+      .where(
+        and(
+          eq(notificationRecipients.id, recipientId),
+          eq(notificationRecipients.studentId, studentId),
+        ),
+      )
       .returning();
     return updated;
   }

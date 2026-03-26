@@ -38,3 +38,9 @@ export const educationalStatus = pgEnum("educational_status", [
   "dropped out",
   "transferred",
 ]);
+
+export const notificationPriority = pgEnum("notification_priority", [
+  "low",
+  "normal",
+  "high",
+]);

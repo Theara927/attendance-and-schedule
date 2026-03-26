@@ -71,10 +71,11 @@ export type DepartmentUpdateInput = z.infer<typeof departmentUpdateSchema>;
  * Student Schemas
  */
 export const studentSchema = z.object({
-  id: z.string().min(1, "Student ID is required"),
+  id: z.string(),
   name: z.string().min(1, "Student name is required"),
   phone: z.string().min(10).max(15),
   email: z.email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
   facultyId: z.number().int().positive(),
   departmentId: z.number().int().positive(),
   academicLevelId: z.number().int().positive(),
@@ -92,6 +93,7 @@ export const studentQuerySchema = z.object({
   facultyId: z.coerce.number().int().positive().optional(),
   departmentId: z.coerce.number().int().positive().optional(),
   academicLevelId: z.coerce.number().int().positive().optional(),
+  generation: z.coerce.number().int().positive().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().default(10),
 });
@@ -104,10 +106,11 @@ export type StudentQueryInput = z.infer<typeof studentQuerySchema>;
  * Teacher Schemas
  */
 export const teacherSchema = z.object({
-  id: z.string().min(1, "Teacher ID is required"),
+  id: z.string(),
   name: z.string().min(1, "Teacher name is required"),
   phone: z.string().min(10).max(15),
   email: z.email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
   gender: genderEnum,
   academicLevelId: z.number().int().positive(),
   facultyId: z.number().int().positive(),
